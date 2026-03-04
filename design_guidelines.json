@@ -1,0 +1,189 @@
+{
+  "project_name": "CarbonTraceAI",
+  "design_philosophy": {
+    "identity": "E1 - The Anti-AI Designer",
+    "core_principles": [
+      "Fusion over Imitation: Mix Fintech precision with Botanical organic feel.",
+      "Emotion First: Trust, Transparency, and Urgent Action.",
+      "Content is King: Data tells the story. Charts are the heroes.",
+      "Negative Space: Value 'dark white space' to reduce cognitive load.",
+      "Contrast: High contrast for readability in dark mode."
+    ],
+    "anti_patterns": [
+      "No generic 'Bootstrap' layouts.",
+      "No 'Inter' for headings - use 'Outfit'.",
+      "No full-screen gradients - use subtle glows.",
+      "No 'Center-Everything' - use asymmetry and grids."
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Outfit, sans-serif",
+      "body": "DM Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "scale": {
+      "h1": "text-5xl md:text-6xl font-bold tracking-tight",
+      "h2": "text-4xl md:text-5xl font-semibold tracking-tight",
+      "h3": "text-3xl font-semibold tracking-tight",
+      "h4": "text-2xl font-medium tracking-tight",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground uppercase tracking-wider"
+    },
+    "installation": "Import via Google Fonts in index.css: @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;700;900&display=swap');"
+  },
+  "colors": {
+    "theme": "dark",
+    "palette": {
+      "background": "#0A0A0A",
+      "foreground": "#FFFFFF",
+      "card": "#121212",
+      "card_foreground": "#FFFFFF",
+      "popover": "#121212",
+      "popover_foreground": "#FFFFFF",
+      "primary": "#00E676",
+      "primary_foreground": "#000000",
+      "secondary": "#2979FF",
+      "secondary_foreground": "#FFFFFF",
+      "muted": "#1E1E1E",
+      "muted_foreground": "#A1A1AA",
+      "accent": "#1E1E1E",
+      "accent_foreground": "#00E676",
+      "destructive": "#FF3D00",
+      "destructive_foreground": "#FFFFFF",
+      "border": "#27272A",
+      "input": "#27272A",
+      "ring": "#00E676"
+    },
+    "charts": {
+      "chart_1": "#00E676",
+      "chart_2": "#2979FF",
+      "chart_3": "#FFB74D",
+      "chart_4": "#FF3D00",
+      "chart_5": "#AB47BC"
+    },
+    "usage_rules": [
+      "Use 'background' (#0A0A0A) for the main app background.",
+      "Use 'card' (#121212) for dashboard widgets and containers.",
+      "Use 'primary' (#00E676) ONLY for primary actions (Submit, Verify) and positive data trends.",
+      "Use 'destructive' (#FF3D00) for high-risk alerts or negative trends.",
+      "Ensure all text on colored backgrounds meets APCA contrast standards."
+    ]
+  },
+  "layout": {
+    "grid_system": {
+      "dashboard": "grid grid-cols-1 md:grid-cols-12 gap-6 p-6",
+      "widget_hero": "col-span-12 md:col-span-8 row-span-2",
+      "widget_standard": "col-span-12 md:col-span-4 row-span-1",
+      "widget_tall": "col-span-12 md:col-span-3 row-span-2"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-8 lg:p-12",
+      "section_gap": "gap-8",
+      "component_padding": "p-6"
+    },
+    "border_radius": {
+      "card": "rounded-xl",
+      "button": "rounded-full",
+      "input": "rounded-lg"
+    },
+    "glassmorphism": {
+      "header": "bg-background/70 backdrop-blur-xl border-b border-white/10",
+      "overlay": "bg-black/60 backdrop-blur-md"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-6 py-2 font-medium transition-all shadow-[0_0_15px_rgba(0,230,118,0.3)] hover:shadow-[0_0_25px_rgba(0,230,118,0.5)]",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full px-6 py-2 font-medium transition-all",
+      "outline": "border border-input bg-transparent hover:bg-accent hover:text-accent-foreground rounded-full px-6 py-2 transition-all",
+      "ghost": "hover:bg-accent hover:text-accent-foreground rounded-full px-4 py-2 transition-all"
+    },
+    "cards": {
+      "base": "bg-card text-card-foreground rounded-xl border border-white/5 shadow-sm p-6 hover:border-primary/20 transition-colors duration-300",
+      "interactive": "cursor-pointer hover:scale-[1.01] transition-transform duration-200"
+    },
+    "inputs": {
+      "base": "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+    },
+    "navigation": {
+      "sidebar": "fixed left-0 top-0 h-full w-64 bg-card border-r border-border p-4 hidden md:flex flex-col z-50",
+      "mobile_nav": "md:hidden fixed bottom-0 left-0 w-full bg-card border-t border-border p-4 flex justify-around z-50"
+    }
+  },
+  "visual_enhancers": {
+    "gradients": {
+      "hero_glow": "bg-gradient-to-tr from-primary/10 via-transparent to-transparent",
+      "card_hover": "hover:bg-gradient-to-br hover:from-white/5 hover:to-transparent"
+    },
+    "textures": {
+      "noise": "bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"
+    },
+    "icons": {
+      "library": "lucide-react",
+      "style": "stroke-[1.5px]"
+    }
+  },
+  "motion": {
+    "library": "framer-motion",
+    "installation": "npm install framer-motion",
+    "transitions": {
+      "default": { "type": "spring", "stiffness": 300, "damping": 30 },
+      "hover": { "duration": 0.2, "ease": "easeInOut" }
+    },
+    "animations": {
+      "fade_in": {
+        "initial": { "opacity": 0, "y": 20 },
+        "animate": { "opacity": 1, "y": 0 },
+        "exit": { "opacity": 0, "y": -20 }
+      },
+      "stagger_container": {
+        "animate": { "transition": { "staggerChildren": 0.1 } }
+      }
+    }
+  },
+  "image_urls": {
+    "hero_background": {
+      "url": "https://images.unsplash.com/photo-1772050138768-2107c6e62a03?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGdyZWVuJTIwdGVjaG5vbG9neSUyMG5ldHdvcmslMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzI2MjQ0MzF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Abstract green light trails on black background - Use for Hero Section background or overlays."
+    },
+    "card_accent": {
+      "url": "https://images.unsplash.com/photo-1764258560123-73a76ddd8f4b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1Mjh8MHwxfHNlYXJjaHw0fHxhYnN0cmFjdCUyMGdyZWVuJTIwdGVjaG5vbG9neSUyMG5ldHdvcmslMjBkYXJrJTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3NzI2MjQ0MzF8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Green neon streaks - Use for 'Carbon Ledger' or 'High Tech' feature cards."
+    },
+    "dashboard_context": {
+      "url": "https://images.unsplash.com/photo-1653566031587-74f7d86a2e71?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHw0fHxhZnJpY2FuJTIwYnVzaW5lc3MlMjB0ZWFtJTIwbWVldGluZyUyMHByb2Zlc3Npb25hbHxlbnwwfHx8fDE3NzI2MjQ0MjB8MA&ixlib=rb-4.1.0&q=85",
+      "description": "African business team meeting - Use for 'About Us' or 'Team' context."
+    },
+    "esg_report_cover": {
+      "url": "https://images.unsplash.com/photo-1720700126957-769e2f2fc0fc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHNlYXJjaHwzfHxhZnJpY2FuJTIwYnVzaW5lc3MlMjB0ZWFtJTIwbWVldGluZyUyMHByb2Zlc3Npb25hbHxlbnwwfHx8fDE3NzI2MjQ0MjB8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Group standing around table - Use for 'ESG Report' cover page or testimonial section."
+    }
+  },
+  "instructions_to_main_agent": {
+    "setup": [
+      "1. Update tailwind.config.js with the provided color palette (extend theme).",
+      "2. Add the Google Fonts import to index.css.",
+      "3. Install framer-motion (npm install framer-motion) and lucide-react if not present.",
+      "4. Ensure 'shadcn-ui' components are installed or manually created in src/components/ui.",
+      "5. Use .js extensions for files as per project constraints."
+    ],
+    "implementation_strategy": {
+      "dashboard": "Build a 'Bento Grid' layout. Use the 'card' component for widgets. Ensure widgets stretch to fill height.",
+      "invoice_parser": "Create a drag-and-drop zone with a dashed border (border-dashed border-2 border-muted-foreground/25). Use a loading animation during parsing.",
+      "carbon_ledger": "Use a table component for transactions. Add a 'Verify' button with the 'primary' style.",
+      "greenwashing_detector": "Use a text area for input. Display results with a radial progress chart (green = safe, red = risk).",
+      "navigation": "Implement a sidebar for desktop and a bottom tab bar for mobile. Use lucide-react icons."
+    },
+    "file_structure_guidance": "Since you are using .js, avoid TypeScript interfaces. Use PropTypes if validation is needed, or standard React props.",
+    "testing": "Add data-testid to all interactive elements (buttons, inputs, links). Format: 'page-section-element' (e.g., 'dashboard-stats-total-emissions')."
+  },
+  "universal_guidelines": [
+    "Do NOT apply 'transition: all'. Use specific transitions.",
+    "Do NOT center align the main app container.",
+    "Use 'sonner' for toast notifications.",
+    "Dark mode is the DEFAULT and ONLY theme for this iteration.",
+    "Ensure 4.5:1 contrast ratio for text."
+  ]
+}
