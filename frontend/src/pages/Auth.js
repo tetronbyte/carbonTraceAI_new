@@ -103,8 +103,8 @@ export function LoginPage() {
             AI-Powered Carbon Accounting
           </h3>
           <p className="text-muted-foreground leading-relaxed">
-            Convert invoices to carbon data, verify emissions on blockchain, detect greenwashing,
-            and generate ESG-compliant reports for African SMEs.
+            Convert invoices to carbon data, verify emissions on blockchain,
+            and generate ESG-compliant reports for African SMEs and exporters.
           </p>
         </div>
       </div>
