@@ -39,6 +39,21 @@ export const api = {
     });
   },
   
+  batchUploadInvoices: (files, organizationId, country = 'default', quarter = null, year = null) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    formData.append('organization_id', organizationId);
+    formData.append('country', country);
+    if (quarter) formData.append('quarter', quarter);
+    if (year) formData.append('year', year);
+    return axios.post(`${API}/invoices/batch-upload`, formData, {
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  getBatchInvoices: (batchId) =>
+    axios.get(`${API}/invoices/batch/${batchId}`, { headers: getAuthHeader() }),
+  
   getInvoices: (orgId) => 
     axios.get(`${API}/invoices?organization_id=${orgId}`, { headers: getAuthHeader() }),
   

@@ -6,9 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
 import { Label } from '../components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Progress } from '../components/ui/progress';
 import { 
   Upload, FileText, CheckCircle2, AlertCircle, Loader2, Cloud, 
-  Trash2, Eye, MapPin, Calendar, DollarSign, Zap
+  Trash2, Eye, MapPin, Calendar, DollarSign, Zap, Files, X,
+  Building, Gauge, Receipt, TrendingUp
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +27,13 @@ const COUNTRIES = [
   { value: 'tanzania', label: 'Tanzania' },
 ];
 
+const QUARTERS = [
+  { value: 'Q1', label: 'Q1 (Jan-Mar)' },
+  { value: 'Q2', label: 'Q2 (Apr-Jun)' },
+  { value: 'Q3', label: 'Q3 (Jul-Sep)' },
+  { value: 'Q4', label: 'Q4 (Oct-Dec)' },
+];
+
 export function InvoicesPage() {
   const { organization } = useAuth();
   const [invoices, setInvoices] = useState([]);
@@ -31,8 +41,13 @@ export function InvoicesPage() {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [parseResult, setParseResult] = useState(null);
+  const [batchResult, setBatchResult] = useState(null);
   const [selectedCountry, setSelectedCountry] = useState('default');
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [uploadMode, setUploadMode] = useState('single');
+  const [batchFiles, setBatchFiles] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (organization?.id) {
@@ -51,14 +66,13 @@ export function InvoicesPage() {
     }
   };
 
-  const handleUpload = async (file) => {
+  const handleSingleUpload = async (file) => {
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf', 'text/plain'];
     const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'];
     const ext = file.name.split('.').pop().toLowerCase();
     
-    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(ext)) {
+    if (!allowedExtensions.includes(ext)) {
       toast.error('Unsupported file type. Please upload JPG, PNG, WEBP, PDF, or TXT files.');
       return;
     }
@@ -70,6 +84,7 @@ export function InvoicesPage() {
 
     setUploading(true);
     setParseResult(null);
+    setBatchResult(null);
 
     try {
       const response = await api.uploadInvoice(file, organization.id, selectedCountry);
@@ -78,7 +93,7 @@ export function InvoicesPage() {
       if (response.data.extracted_data?.parse_error) {
         toast.warning('Invoice parsed with some issues. Please review the data.');
       } else {
-        toast.success('Invoice parsed successfully!');
+        toast.success('Invoice parsed successfully with AI!');
       }
       
       fetchInvoices();
@@ -89,12 +104,61 @@ export function InvoicesPage() {
     }
   };
 
+  const handleBatchUpload = async () => {
+    if (batchFiles.length === 0) {
+      toast.error('Please select files to upload');
+      return;
+    }
+
+    setUploading(true);
+    setParseResult(null);
+    setBatchResult(null);
+    setUploadProgress(10);
+
+    try {
+      setUploadProgress(30);
+      const response = await api.batchUploadInvoices(
+        batchFiles,
+        organization.id,
+        selectedCountry,
+        selectedQuarter || null,
+        selectedYear || null
+      );
+      setUploadProgress(100);
+      setBatchResult(response.data);
+      setBatchFiles([]);
+      
+      if (response.data.failed > 0) {
+        toast.warning(`Processed ${response.data.successful} of ${response.data.total_files} files`);
+      } else {
+        toast.success(`Successfully processed ${response.data.successful} invoices!`);
+      }
+      
+      fetchInvoices();
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Error processing batch');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setDragOver(false);
-    const file = e.dataTransfer.files[0];
-    handleUpload(file);
-  }, [organization?.id, selectedCountry]);
+    
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    
+    if (uploadMode === 'single' && droppedFiles.length > 0) {
+      handleSingleUpload(droppedFiles[0]);
+    } else if (uploadMode === 'batch') {
+      const validFiles = droppedFiles.filter(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        return ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'].includes(ext);
+      });
+      setBatchFiles(prev => [...prev, ...validFiles].slice(0, 20));
+    }
+  }, [uploadMode, organization?.id, selectedCountry]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -106,8 +170,21 @@ export function InvoicesPage() {
   };
 
   const handleFileSelect = (e) => {
-    const file = e.target.files[0];
-    handleUpload(file);
+    const files = Array.from(e.target.files);
+    
+    if (uploadMode === 'single' && files.length > 0) {
+      handleSingleUpload(files[0]);
+    } else if (uploadMode === 'batch') {
+      const validFiles = files.filter(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        return ['jpg', 'jpeg', 'png', 'webp', 'pdf', 'txt'].includes(ext);
+      });
+      setBatchFiles(prev => [...prev, ...validFiles].slice(0, 20));
+    }
+  };
+
+  const removeFromBatch = (index) => {
+    setBatchFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteInvoice = async (invoiceId) => {
@@ -117,9 +194,6 @@ export function InvoicesPage() {
       await api.deleteInvoice(invoiceId);
       toast.success('Invoice deleted');
       fetchInvoices();
-      if (selectedInvoice?.id === invoiceId) {
-        setSelectedInvoice(null);
-      }
     } catch (error) {
       toast.error('Error deleting invoice');
     }
@@ -149,84 +223,287 @@ export function InvoicesPage() {
             AI Invoice Intelligence
           </h1>
           <p className="text-muted-foreground mt-1">
-            Upload energy invoices to automatically extract carbon emission data using AI
+            Upload energy invoices to automatically extract carbon emission data using VLM
           </p>
         </div>
 
         {/* Upload Zone */}
         <Card className="bg-card border-border">
-          <CardContent className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <div className="md:col-span-1">
-                <Label htmlFor="country" className="text-sm text-muted-foreground">
-                  Country (for emission factors)
-                </Label>
-                <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                  <SelectTrigger id="country" className="mt-2" data-testid="country-select">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COUNTRIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div
-              className={`upload-zone rounded-xl p-12 text-center transition-all ${
-                dragOver ? 'dragover' : ''
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              data-testid="upload-zone"
-            >
-              {uploading ? (
-                <div className="space-y-4">
-                  <Loader2 className="w-12 h-12 mx-auto text-primary animate-spin" />
-                  <p className="text-lg font-medium">Processing invoice with AI...</p>
-                  <p className="text-sm text-muted-foreground">
-                    Extracting data and calculating emissions using Vision Language Model
-                  </p>
+          <CardContent className="p-6">
+            <Tabs value={uploadMode} onValueChange={setUploadMode} className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="single" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Single Invoice
+                </TabsTrigger>
+                <TabsTrigger value="batch" className="flex items-center gap-2">
+                  <Files className="w-4 h-4" />
+                  Batch Upload (Quarterly)
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Settings Row */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Country (Emission Factors)</Label>
+                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+                    <SelectTrigger className="mt-1" data-testid="country-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <>
-                  <Upload className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium mb-2">
-                    Drop your invoice here or click to browse
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Supports JPG, PNG, WEBP, PDF, TXT files up to 25MB
-                  </p>
-                  <p className="text-xs text-muted-foreground mb-6">
-                    Works with printed invoices, scans, and handwritten receipts
+                {uploadMode === 'batch' && (
+                  <>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Quarter (Optional)</Label>
+                      <Select value={selectedQuarter} onValueChange={setSelectedQuarter}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue placeholder="Select quarter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {QUARTERS.map((q) => (
+                            <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Year (Optional)</Label>
+                      <Select value={selectedYear} onValueChange={setSelectedYear}>
+                        <SelectTrigger className="mt-1">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2024, 2025, 2026].map((y) => (
+                            <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <TabsContent value="single">
+                <div
+                  className={`upload-zone rounded-xl p-10 text-center transition-all ${dragOver ? 'dragover' : ''}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  data-testid="upload-zone"
+                >
+                  {uploading ? (
+                    <div className="space-y-4">
+                      <Loader2 className="w-12 h-12 mx-auto text-primary animate-spin" />
+                      <p className="text-lg font-medium">Processing with AI Vision...</p>
+                      <p className="text-sm text-muted-foreground">
+                        Extracting vendor, dates, energy usage, and calculating emissions
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-lg font-medium mb-2">Drop invoice here or click to browse</p>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Supports JPG, PNG, WEBP, PDF, TXT (max 25MB)
+                      </p>
+                      <input
+                        type="file"
+                        id="single-upload"
+                        className="hidden"
+                        accept=".jpg,.jpeg,.png,.webp,.pdf,.txt"
+                        onChange={handleFileSelect}
+                        data-testid="file-input"
+                      />
+                      <Button asChild className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8">
+                        <label htmlFor="single-upload" className="cursor-pointer" data-testid="upload-btn">
+                          Select File
+                        </label>
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="batch">
+                <div
+                  className={`upload-zone rounded-xl p-8 text-center transition-all ${dragOver ? 'dragover' : ''}`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                >
+                  <Files className="w-10 h-10 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-lg font-medium mb-2">Drop multiple invoices for batch processing</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Upload all invoices from a quarter at once (max 20 files)
                   </p>
                   <input
                     type="file"
-                    id="file-upload"
+                    id="batch-upload"
                     className="hidden"
                     accept=".jpg,.jpeg,.png,.webp,.pdf,.txt"
+                    multiple
                     onChange={handleFileSelect}
-                    data-testid="file-input"
                   />
-                  <Button
-                    asChild
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-8"
-                  >
-                    <label htmlFor="file-upload" className="cursor-pointer" data-testid="upload-btn">
-                      Select File
+                  <Button asChild variant="outline" className="rounded-full px-6">
+                    <label htmlFor="batch-upload" className="cursor-pointer">
+                      Add Files
                     </label>
                   </Button>
-                </>
-              )}
-            </div>
+                </div>
+
+                {/* Batch Files List */}
+                {batchFiles.length > 0 && (
+                  <div className="mt-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{batchFiles.length} files selected</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBatchFiles([])}
+                        className="text-muted-foreground"
+                      >
+                        Clear all
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                      {batchFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 rounded-lg bg-muted/50 text-sm"
+                        >
+                          <span className="truncate flex-1 mr-2">{file.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeFromBatch(index)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {uploading && (
+                      <div className="space-y-2">
+                        <Progress value={uploadProgress} className="h-2" />
+                        <p className="text-xs text-muted-foreground text-center">Processing invoices with AI...</p>
+                      </div>
+                    )}
+                    
+                    <Button
+                      onClick={handleBatchUpload}
+                      disabled={uploading || batchFiles.length === 0}
+                      className="w-full bg-primary text-primary-foreground hover:bg-primary/90 rounded-full"
+                      data-testid="batch-upload-btn"
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing {batchFiles.length} files...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 mr-2" />
+                          Process {batchFiles.length} Invoices
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
-        {/* Parse Result */}
-        {parseResult && (
+        {/* Batch Result */}
+        {batchResult && (
+          <Card className="bg-card border-border neon-border animate-fade-in" data-testid="batch-result">
+            <CardHeader>
+              <CardTitle className="font-['Outfit'] flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-primary" />
+                Batch Processing Complete
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                  <p className="text-2xl font-bold text-primary">{batchResult.successful}</p>
+                  <p className="text-xs text-muted-foreground">Successful</p>
+                </div>
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                  <p className="text-2xl font-bold text-destructive">{batchResult.failed}</p>
+                  <p className="text-xs text-muted-foreground">Failed</p>
+                </div>
+                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                  <p className="text-2xl font-bold text-primary">{formatEmissions(batchResult.total_emissions)}</p>
+                  <p className="text-xs text-muted-foreground">Total kg CO2e</p>
+                </div>
+                <div className="p-4 rounded-lg bg-muted/50 text-center">
+                  <p className="text-2xl font-bold">{batchResult.emission_records?.length || 0}</p>
+                  <p className="text-xs text-muted-foreground">Records Created</p>
+                </div>
+              </div>
+
+              {/* Scope Breakdown */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                  <p className="text-xs text-orange-400 mb-1">Scope 1 (Direct)</p>
+                  <p className="text-xl font-bold">{formatEmissions(batchResult.scope1_emissions)} kg</p>
+                </div>
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-400 mb-1">Scope 2 (Energy)</p>
+                  <p className="text-xl font-bold">{formatEmissions(batchResult.scope2_emissions)} kg</p>
+                </div>
+                <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-400 mb-1">Scope 3 (Value Chain)</p>
+                  <p className="text-xl font-bold">{formatEmissions(batchResult.scope3_emissions)} kg</p>
+                </div>
+              </div>
+
+              {/* Processed Invoices */}
+              <div>
+                <h4 className="font-medium mb-3">Processed Invoices</h4>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {batchResult.invoices?.map((inv, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        {inv.status === 'completed' ? (
+                          <CheckCircle2 className="w-4 h-4 text-primary" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-chart-3" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium truncate max-w-[200px]">{inv.file_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {inv.vendor_name || 'Unknown vendor'} • {inv.document_type || 'unknown'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-medium text-primary">
+                        {formatEmissions(inv.total_emissions)} kg CO2e
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Single Parse Result */}
+        {parseResult && !batchResult && (
           <Card className="bg-card border-border neon-border animate-fade-in" data-testid="parse-result">
             <CardHeader>
               <CardTitle className="font-['Outfit'] flex items-center gap-2">
@@ -236,16 +513,14 @@ export function InvoicesPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Extracted Data Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div className="p-4 rounded-lg bg-muted/50">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                    <FileText className="w-3 h-3" /> Vendor
+                    <Building className="w-3 h-3" /> Vendor
                   </div>
-                  <p className="font-medium truncate">
-                    {parseResult.extracted_data?.vendor_name || 'Unknown'}
-                  </p>
+                  <p className="font-medium truncate">{parseResult.extracted_data?.vendor_name || 'Unknown'}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <Calendar className="w-3 h-3" /> Date
                   </div>
@@ -255,15 +530,13 @@ export function InvoicesPage() {
                       : 'N/A'}
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <MapPin className="w-3 h-3" /> Location
                   </div>
-                  <p className="font-medium capitalize">
-                    {parseResult.extracted_data?.location || 'N/A'}
-                  </p>
+                  <p className="font-medium capitalize">{parseResult.extracted_data?.location || 'N/A'}</p>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/50">
+                <div className="p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
                     <DollarSign className="w-3 h-3" /> Amount
                   </div>
@@ -273,13 +546,31 @@ export function InvoicesPage() {
                       : 'N/A'}
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground mb-1">Invoice #</p>
-                  <p className="font-medium truncate">
-                    {parseResult.extracted_data?.invoice_number || 'N/A'}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                {parseResult.extracted_data?.billing_period && (
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Calendar className="w-3 h-3" /> Billing Period
+                    </div>
+                    <p className="font-medium text-sm">{parseResult.extracted_data.billing_period}</p>
+                  </div>
+                )}
+                {parseResult.extracted_data?.meter_number && (
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Gauge className="w-3 h-3" /> Meter
+                    </div>
+                    <p className="font-medium">{parseResult.extracted_data.meter_number}</p>
+                  </div>
+                )}
+                {parseResult.extracted_data?.tariff_type && (
+                  <div className="p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Receipt className="w-3 h-3" /> Tariff
+                    </div>
+                    <p className="font-medium">{parseResult.extracted_data.tariff_type}</p>
+                  </div>
+                )}
+                <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                   <div className="flex items-center gap-2 text-xs text-primary mb-1">
                     <Cloud className="w-3 h-3" /> Total CO2e
                   </div>
@@ -289,7 +580,19 @@ export function InvoicesPage() {
                 </div>
               </div>
 
-              {/* Notes/Errors */}
+              {/* Additional Info */}
+              {(parseResult.extracted_data?.customer_name || parseResult.extracted_data?.customer_account_number) && (
+                <div className="p-3 rounded-lg bg-muted/30 border border-border">
+                  <p className="text-xs text-muted-foreground mb-1">Customer</p>
+                  <p className="font-medium">
+                    {parseResult.extracted_data.customer_name}
+                    {parseResult.extracted_data.customer_account_number && 
+                      ` (Account: ${parseResult.extracted_data.customer_account_number})`}
+                  </p>
+                </div>
+              )}
+
+              {/* Notes */}
               {parseResult.extracted_data?.notes && (
                 <div className="p-3 rounded-lg bg-chart-3/10 border border-chart-3/20 text-sm">
                   <span className="text-chart-3 font-medium">Note: </span>
@@ -337,7 +640,12 @@ export function InvoicesPage() {
 
               {/* Total Summary */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-primary/10 border border-primary/20">
-                <span className="font-medium">Total Emissions (CBAM-Ready)</span>
+                <div>
+                  <span className="font-medium">Total Emissions</span>
+                  <p className="text-xs text-muted-foreground">
+                    Using {parseResult.extracted_data?.emission_country_used || 'default'} emission factors
+                  </p>
+                </div>
                 <span className="text-2xl font-bold font-['Outfit'] text-primary">
                   {formatEmissions(parseResult.extracted_data?.total_emissions || 0)} kg CO2e
                 </span>
@@ -372,11 +680,12 @@ export function InvoicesPage() {
                         <p className="text-sm text-muted-foreground">
                           {new Date(invoice.uploaded_at).toLocaleString()}
                           {invoice.extracted_data?.vendor_name && ` • ${invoice.extracted_data.vendor_name}`}
+                          {invoice.extracted_data?.document_type && ` • ${invoice.extracted_data.document_type}`}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      {invoice.extracted_data?.total_emissions && (
+                      {invoice.extracted_data?.total_emissions !== undefined && (
                         <span className="text-sm font-medium text-primary">
                           {formatEmissions(invoice.extracted_data.total_emissions)} kg CO2e
                         </span>
@@ -404,11 +713,14 @@ export function InvoicesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setParseResult({ 
-                          invoice, 
-                          extracted_data: invoice.extracted_data,
-                          emission_records: [] 
-                        })}
+                        onClick={() => {
+                          setParseResult({ 
+                            invoice, 
+                            extracted_data: invoice.extracted_data,
+                            emission_records: [] 
+                          });
+                          setBatchResult(null);
+                        }}
                         className="rounded-full"
                       >
                         <Eye className="w-4 h-4" />
