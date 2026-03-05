@@ -121,7 +121,7 @@ export function InvoicesPage() {
         batchFiles,
         organization.id,
         selectedCountry,
-        selectedQuarter || null,
+        selectedQuarter === 'none' ? null : selectedQuarter || null,
         selectedYear || null
       );
       setUploadProgress(100);
@@ -266,7 +266,7 @@ export function InvoicesPage() {
                           <SelectValue placeholder="Select quarter" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {QUARTERS.map((q) => (
                             <SelectItem key={q.value} value={q.value}>{q.label}</SelectItem>
                           ))}
