@@ -1,0 +1,178 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;700&family=JetBrains+Mono:wght@400;500&family=Outfit:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 0 0% 4%;
+        --foreground: 0 0% 100%;
+        --card: 0 0% 7%;
+        --card-foreground: 0 0% 100%;
+        --popover: 0 0% 7%;
+        --popover-foreground: 0 0% 100%;
+        --primary: 145 100% 45%;
+        --primary-foreground: 0 0% 0%;
+        --secondary: 217 100% 58%;
+        --secondary-foreground: 0 0% 100%;
+        --muted: 0 0% 12%;
+        --muted-foreground: 240 5% 65%;
+        --accent: 0 0% 12%;
+        --accent-foreground: 145 100% 45%;
+        --destructive: 14 100% 50%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 240 4% 16%;
+        --input: 240 4% 16%;
+        --ring: 145 100% 45%;
+        --chart-1: 145 100% 45%;
+        --chart-2: 217 100% 58%;
+        --chart-3: 37 91% 65%;
+        --chart-4: 14 100% 50%;
+        --chart-5: 291 47% 51%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    body {
+        @apply bg-background text-foreground;
+        font-family: 'DM Sans', sans-serif;
+    }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Outfit', sans-serif;
+    }
+    code, pre {
+        font-family: 'JetBrains Mono', monospace;
+    }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 15px rgba(0, 230, 118, 0.3); }
+    50% { box-shadow: 0 0 25px rgba(0, 230, 118, 0.5); }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-green {
+    animation: pulse-green 2s infinite;
+}
+
+/* Glassmorphism */
+.glass {
+    background: rgba(18, 18, 18, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Card hover effect */
+.card-hover {
+    transition: transform 0.2s ease, border-color 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.3);
+}
+
+/* Neon border */
+.neon-border {
+    position: relative;
+}
+
+.neon-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, hsl(var(--primary)), transparent 50%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+}
+
+/* Upload zone */
+.upload-zone {
+    border: 2px dashed hsl(var(--muted-foreground) / 0.25);
+    transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+    border-color: hsl(var(--primary));
+    background: hsl(var(--primary) / 0.05);
+}
+
+/* Chat bubbles */
+.chat-bubble-user {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-radius: 18px 18px 4px 18px;
+}
+
+.chat-bubble-assistant {
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border-radius: 18px 18px 18px 4px;
+}
+
+/* Progress indicator */
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+    transition: stroke-dashoffset 0.5s ease;
+}
+
+/* Sidebar */
+.sidebar-link {
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+}
+
+/* Data grid patterns */
+@layer base {
+    [data-debug-wrapper="true"] {
+        display: contents !important;
+    }
+}
