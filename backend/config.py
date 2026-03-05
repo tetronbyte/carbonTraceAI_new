@@ -16,8 +16,8 @@ class Settings:
     # Ollama Cloud API
     OLLAMA_API_KEY: str = os.environ.get("OLLAMA_API_KEY", "")
     OLLAMA_HOST: str = "https://ollama.com"
-    VLM_MODEL: str = "kimi-k2.5:cloud"  # Vision Language Model for invoice parsing
-    LLM_MODEL: str = "deepseek-v3.2:cloud"  # LLM for text generation
+    VLM_MODEL: str = "kimi-k2.5"  # Vision Language Model for invoice parsing
+    LLM_MODEL: str = "kimi-k2.5"  # LLM for text generation
     
     # File paths
     UPLOAD_DIR: str = str(ROOT_DIR / "uploads")
