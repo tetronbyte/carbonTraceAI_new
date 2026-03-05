@@ -11,9 +11,15 @@ class Settings:
     SECRET_KEY: str = os.environ.get("SECRET_KEY", "carbontraceai-secret-key-change-in-production")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
-    OLLAMA_HOST: str = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
     CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "*")
-    EMERGENT_LLM_KEY: str = os.environ.get("EMERGENT_LLM_KEY", "")
+    
+    # Ollama Cloud API
+    OLLAMA_API_KEY: str = os.environ.get("OLLAMA_API_KEY", "")
+    OLLAMA_HOST: str = "https://ollama.com"
+    VLM_MODEL: str = "kimi-k2.5:cloud"  # Vision Language Model for invoice parsing
+    LLM_MODEL: str = "deepseek-v3.2:cloud"  # LLM for text generation
+    
+    # File paths
     UPLOAD_DIR: str = str(ROOT_DIR / "uploads")
     REPORTS_DIR: str = str(ROOT_DIR / "generated_reports")
     TEMPLATES_DIR: str = str(ROOT_DIR / "templates")

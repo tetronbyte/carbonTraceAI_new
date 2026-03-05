@@ -12,8 +12,6 @@ from config import settings
 from routers.auth import router as auth_router
 from routers.invoices import router as invoices_router
 from routers.ledger import router as ledger_router
-from routers.greenwashing import router as greenwashing_router
-from routers.estimator import router as estimator_router
 from routers.reports import router as reports_router
 from routers.dashboard import router as dashboard_router
 
@@ -44,7 +42,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="CarbonTraceAI",
     description="AI-powered carbon accounting and verification platform for African SMEs",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -66,8 +64,6 @@ app.mount("/static/reports", StaticFiles(directory=str(reports_path)), name="rep
 app.include_router(auth_router, prefix="/api")
 app.include_router(invoices_router, prefix="/api")
 app.include_router(ledger_router, prefix="/api")
-app.include_router(greenwashing_router, prefix="/api")
-app.include_router(estimator_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
 
@@ -75,7 +71,12 @@ app.include_router(dashboard_router, prefix="/api")
 async def root():
     return {
         "message": "Welcome to CarbonTraceAI API",
-        "version": "1.0.0",
+        "version": "2.0.0",
+        "features": [
+            "AI-Powered Invoice Intelligence",
+            "Blockchain-Verified Carbon Ledger",
+            "ESG Report Generator (ISSB/TCFD/GRI/CBAM)"
+        ],
         "docs": "/docs"
     }
 

@@ -4,8 +4,6 @@ import {
   LayoutDashboard,
   FileText,
   Link2,
-  Shield,
-  MessageSquare,
   FileBarChart,
   LogOut,
   Leaf,
@@ -18,8 +16,6 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/invoices', icon: FileText, label: 'Invoice Parser' },
   { to: '/ledger', icon: Link2, label: 'Carbon Ledger' },
-  { to: '/greenwashing', icon: Shield, label: 'Greenwashing Detector' },
-  { to: '/estimator', icon: MessageSquare, label: 'Carbon Estimator' },
   { to: '/reports', icon: FileBarChart, label: 'ESG Reports' },
 ];
 

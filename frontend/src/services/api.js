@@ -29,10 +29,11 @@ export const api = {
     axios.get(`${API}/dashboard/${orgId}`, { headers: getAuthHeader() }),
 
   // Invoices
-  uploadInvoice: (file, organizationId) => {
+  uploadInvoice: (file, organizationId, country = 'default') => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('organization_id', organizationId);
+    formData.append('country', country);
     return axios.post(`${API}/invoices/upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
     });
@@ -43,6 +44,12 @@ export const api = {
   
   getInvoice: (id) => 
     axios.get(`${API}/invoices/${id}`, { headers: getAuthHeader() }),
+  
+  getInvoiceEmissions: (id) =>
+    axios.get(`${API}/invoices/${id}/emissions`, { headers: getAuthHeader() }),
+  
+  deleteInvoice: (id) =>
+    axios.delete(`${API}/invoices/${id}`, { headers: getAuthHeader() }),
 
   // Carbon Ledger
   recordOnBlockchain: (orgId, recordIds) => 
@@ -60,41 +67,15 @@ export const api = {
   getEmissionRecords: (orgId, verifiedOnly = false) => 
     axios.get(`${API}/ledger/emissions/${orgId}?verified_only=${verifiedOnly}`, { headers: getAuthHeader() }),
 
-  // Greenwashing
-  analyzeGreenwashing: (orgId, text, name, type, useAi = false) => 
-    axios.post(`${API}/greenwashing/analyze`, {
-      organization_id: orgId,
-      document_text: text,
-      document_name: name,
-      document_type: type,
-      use_ai_enhancement: useAi
-    }, { headers: getAuthHeader() }),
-  
-  getGreenwashingAnalyses: (orgId) => 
-    axios.get(`${API}/greenwashing?organization_id=${orgId}`, { headers: getAuthHeader() }),
-  
-  getGreenwashingAnalysis: (id) => 
-    axios.get(`${API}/greenwashing/${id}`, { headers: getAuthHeader() }),
-
-  // Carbon Estimator
-  startEstimatorSession: (orgId) => 
-    axios.post(`${API}/estimator/start`, { organization_id: orgId }, { headers: getAuthHeader() }),
-  
-  sendEstimatorMessage: (sessionId, message) => 
-    axios.post(`${API}/estimator/chat`, { session_id: sessionId, message }, { headers: getAuthHeader() }),
-  
-  generateEstimate: (sessionId) => 
-    axios.post(`${API}/estimator/generate`, { session_id: sessionId }, { headers: getAuthHeader() }),
-  
-  getEstimatorSession: (sessionId) => 
-    axios.get(`${API}/estimator/session/${sessionId}`, { headers: getAuthHeader() }),
-  
-  getEstimatorSessions: (orgId) => 
-    axios.get(`${API}/estimator/sessions/${orgId}`, { headers: getAuthHeader() }),
-
   // ESG Reports
+  getFrameworks: () =>
+    axios.get(`${API}/reports/frameworks`, { headers: getAuthHeader() }),
+  
   generateReport: (data) => 
     axios.post(`${API}/reports/generate`, data, { headers: getAuthHeader() }),
+  
+  generateCBAMReport: (data) =>
+    axios.post(`${API}/reports/cbam`, data, { headers: getAuthHeader() }),
   
   getReports: (orgId) => 
     axios.get(`${API}/reports?organization_id=${orgId}`, { headers: getAuthHeader() }),
@@ -107,6 +88,9 @@ export const api = {
   
   getReportHtml: (id) => 
     axios.get(`${API}/reports/${id}/html`, { headers: getAuthHeader() }),
+  
+  deleteReport: (id) =>
+    axios.delete(`${API}/reports/${id}`, { headers: getAuthHeader() }),
 };
 
 export default api;

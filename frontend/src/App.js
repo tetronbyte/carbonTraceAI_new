@@ -5,8 +5,6 @@ import { LoginPage, RegisterPage } from './pages/Auth';
 import { DashboardPage } from './pages/Dashboard';
 import { InvoicesPage } from './pages/Invoices';
 import { LedgerPage } from './pages/Ledger';
-import { GreenwashingPage } from './pages/Greenwashing';
-import { EstimatorPage } from './pages/Estimator';
 import { ReportsPage } from './pages/Reports';
 import './App.css';
 
@@ -86,22 +84,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <LedgerPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/greenwashing"
-        element={
-          <ProtectedRoute>
-            <GreenwashingPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/estimator"
-        element={
-          <ProtectedRoute>
-            <EstimatorPage />
           </ProtectedRoute>
         }
       />

@@ -7,20 +7,26 @@ from schemas import InvoiceResponse, EmissionRecordResponse
 from services.auth_service import get_current_user
 from services.invoice_parser import parse_invoice
 from config import settings
-from typing import List
+from typing import List, Optional
 
 router = APIRouter(prefix="/invoices", tags=["Invoice Parser"])
 
-ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "pdf", "txt"}
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "pdf", "txt", "webp"}
 MAX_FILE_SIZE = 25 * 1024 * 1024  # 25MB
 
 @router.post("/upload", response_model=dict)
 async def upload_invoice(
     file: UploadFile = File(...),
     organization_id: str = Form(...),
+    country: Optional[str] = Form("default"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Upload and parse an invoice"""
+    """
+    Upload and parse an invoice using AI Vision Language Model.
+    Extracts energy consumption data and calculates carbon emissions.
+    
+    Supported formats: JPG, PNG, PDF, TXT, WEBP
+    """
     # Validate file extension
     file_ext = file.filename.split(".")[-1].lower()
     if file_ext not in ALLOWED_EXTENSIONS:
@@ -52,30 +58,33 @@ async def upload_invoice(
         "file_path": file_path,
         "status": "processing",
         "extracted_data": None,
+        "country": country,
         "uploaded_at": datetime.now(timezone.utc).isoformat()
     }
     await invoices_collection.insert_one(invoice)
     
     try:
-        # Parse invoice
-        parsed_data = parse_invoice(file_path, file_ext)
+        # Parse invoice with VLM
+        parsed_data = await parse_invoice(file_path, file_ext, country)
         
         # Create emission records
         emission_records = []
-        for emission_data in parsed_data["emissions_data"]:
+        for emission_data in parsed_data.get("emissions_data", []):
             record_id = str(uuid.uuid4())
             record = {
                 "id": record_id,
                 "organization_id": organization_id,
                 "invoice_id": invoice_id,
-                "energy_type": emission_data["energy_type"],
-                "quantity": emission_data["quantity"],
-                "unit": emission_data["unit"],
-                "scope_type": emission_data["scope_type"],
-                "co2_emissions_kg": emission_data["co2_emissions_kg"],
-                "invoice_date": parsed_data.get("invoice_date").isoformat() if parsed_data.get("invoice_date") else None,
+                "energy_type": emission_data.get("energy_type", "electricity"),
+                "quantity": emission_data.get("quantity", 0),
+                "unit": emission_data.get("unit", "units"),
+                "scope_type": emission_data.get("scope_type", "Scope2"),
+                "co2_emissions_kg": emission_data.get("co2_emissions_kg", 0),
+                "description": emission_data.get("description", ""),
+                "cost": emission_data.get("cost", 0),
+                "invoice_date": parsed_data.get("invoice_date"),
                 "vendor_name": parsed_data.get("vendor_name"),
-                "cost": parsed_data.get("cost"),
+                "location": parsed_data.get("location"),
                 "is_verified": False,
                 "created_at": datetime.now(timezone.utc).isoformat()
             }
@@ -86,17 +95,23 @@ async def upload_invoice(
         extracted_data = {
             "vendor_name": parsed_data.get("vendor_name"),
             "invoice_number": parsed_data.get("invoice_number"),
-            "invoice_date": parsed_data.get("invoice_date").isoformat() if parsed_data.get("invoice_date") else None,
-            "cost": parsed_data.get("cost"),
+            "invoice_date": parsed_data.get("invoice_date"),
+            "location": parsed_data.get("location"),
+            "total_amount": parsed_data.get("total_amount"),
+            "currency": parsed_data.get("currency"),
             "total_emissions": parsed_data.get("total_emissions"),
+            "notes": parsed_data.get("notes"),
+            "parse_error": parsed_data.get("parse_error", False)
         }
+        
+        status = "completed" if not parsed_data.get("parse_error") else "partial"
         
         await invoices_collection.update_one(
             {"id": invoice_id},
-            {"$set": {"status": "completed", "extracted_data": extracted_data}}
+            {"$set": {"status": status, "extracted_data": extracted_data}}
         )
         
-        invoice["status"] = "completed"
+        invoice["status"] = status
         invoice["extracted_data"] = extracted_data
         
         return {
@@ -105,7 +120,7 @@ async def upload_invoice(
                 "organization_id": organization_id,
                 "file_name": file.filename,
                 "file_type": file_ext,
-                "status": "completed",
+                "status": status,
                 "extracted_data": extracted_data,
                 "uploaded_at": invoice["uploaded_at"]
             },
@@ -118,9 +133,10 @@ async def upload_invoice(
                 "unit": r["unit"],
                 "scope_type": r["scope_type"],
                 "co2_emissions_kg": r["co2_emissions_kg"],
+                "description": r.get("description", ""),
                 "invoice_date": r["invoice_date"],
                 "vendor_name": r["vendor_name"],
-                "cost": r["cost"],
+                "cost": r.get("cost", 0),
                 "is_verified": r["is_verified"],
                 "created_at": r["created_at"]
             } for r in emission_records],
@@ -130,7 +146,7 @@ async def upload_invoice(
     except Exception as e:
         await invoices_collection.update_one(
             {"id": invoice_id},
-            {"$set": {"status": "failed"}}
+            {"$set": {"status": "failed", "extracted_data": {"error": str(e)}}}
         )
         raise HTTPException(status_code=500, detail=f"Error parsing invoice: {str(e)}")
 
@@ -158,3 +174,38 @@ async def get_invoice(
         raise HTTPException(status_code=404, detail="Invoice not found")
     
     return invoice
+
+@router.get("/{invoice_id}/emissions", response_model=List[EmissionRecordResponse])
+async def get_invoice_emissions(
+    invoice_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get emission records for a specific invoice"""
+    records = await emission_records_collection.find(
+        {"invoice_id": invoice_id},
+        {"_id": 0}
+    ).to_list(100)
+    return records
+
+@router.delete("/{invoice_id}")
+async def delete_invoice(
+    invoice_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete an invoice and its emission records"""
+    invoice = await invoices_collection.find_one({"id": invoice_id}, {"_id": 0})
+    
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Delete emission records
+    await emission_records_collection.delete_many({"invoice_id": invoice_id})
+    
+    # Delete invoice
+    await invoices_collection.delete_one({"id": invoice_id})
+    
+    # Delete file if exists
+    if invoice.get("file_path") and os.path.exists(invoice["file_path"]):
+        os.remove(invoice["file_path"])
+    
+    return {"message": "Invoice deleted successfully"}
