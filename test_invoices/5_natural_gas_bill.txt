@@ -1,0 +1,32 @@
+KENYA GAS COMPANY LIMITED
+Natural Gas Supply Invoice
+
+Account: NG-778899
+Customer Name: Riverside Hotel Ltd
+Supply Address: Westlands, Nairobi
+
+Invoice Number: INV-2024-0234
+Invoice Date: February 28, 2024
+Due Date: March 20, 2024
+
+Billing Period: January 2024
+
+Meter Serial: GS-44556
+Previous Reading: 2,340 m3
+Current Reading: 2,820 m3
+Consumption: 480 m3
+
+CHARGES:
+Gas Supply (480 m3 @ KES 95.00/m3): KES 45,600.00
+Network Charge: KES 1,200.00
+Metering Fee: KES 350.00
+
+Subtotal: KES 47,150.00
+VAT (16%): KES 7,544.00
+
+Total Payable: KES 54,694.00
+
+Payment Details:
+Bank: KCB Bank
+Account: 1234567890
+Paybill: 522522

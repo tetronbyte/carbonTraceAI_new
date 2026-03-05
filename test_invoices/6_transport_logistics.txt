@@ -1,0 +1,31 @@
+SWIFT LOGISTICS KENYA LTD
+Freight & Transportation Invoice
+
+Invoice No: SWL-2024-0089
+Date: March 1, 2024
+Customer: Green Manufacturing Co.
+Customer Ref: PO-2024-045
+
+SHIPMENT DETAILS:
+Origin: Mombasa Port
+Destination: Nairobi - Industrial Area
+Distance: 485 km
+Cargo: Raw Materials (12 tonnes)
+Vehicle: KBS 456T (20ft Container)
+
+SERVICES:
+Freight Charges (485 km): KES 85,000.00
+Port Handling: KES 12,000.00
+Fuel Surcharge: KES 8,500.00
+Insurance: KES 3,200.00
+
+Subtotal: KES 108,700.00
+VAT (16%): KES 17,392.00
+
+Total Invoice Amount: KES 126,092.00
+
+Delivery Date: February 28, 2024
+Driver: James Omondi
+Delivery Note: DN-8899
+
+Payment Terms: Net 30 days
