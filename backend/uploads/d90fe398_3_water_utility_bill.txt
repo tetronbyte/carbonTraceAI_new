@@ -1,0 +1,27 @@
+NAIROBI WATER AND SEWERAGE COMPANY
+Water & Sewerage Services Bill
+
+Account Number: WTR-445566
+Customer: ABC Manufacturing Ltd
+Property: Industrial Park, Nairobi
+
+Billing Period: February 1-28, 2024
+Bill Date: March 5, 2024
+Due Date: March 25, 2024
+
+Meter Number: NW-88990
+Previous Reading: 1,240 m3
+Current Reading: 1,485 m3
+Consumption: 245 m3
+
+CHARGES:
+Water Supply (245 m3 @ KES 53.00/m3): KES 12,985.00
+Sewerage Charges: KES 6,492.50
+Meter Rent: KES 75.00
+
+Subtotal: KES 19,552.50
+VAT (16%): KES 3,128.40
+
+Total Amount Due: KES 22,680.90
+
+Please remit payment to avoid service interruption.
