@@ -33,8 +33,8 @@ export function Sidebar() {
     <>
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center">
-            <img src="/logo.png" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
+          <div className="w-14 h-14 flex items-center justify-center">
+            <img src="/logo.svg" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-foreground font-['Outfit']">CarbonTraceAI</h1>
