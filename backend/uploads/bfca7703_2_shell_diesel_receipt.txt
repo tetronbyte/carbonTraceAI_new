@@ -1,0 +1,15 @@
+SHELL FUEL STATION
+Nairobi, Kenya
+
+Receipt Number: SH-998812
+Date: March 3, 2025
+
+Vehicle: Factory Generator Tank
+
+PRODUCT: DIESEL
+Quantity: 150 liters
+Price per Liter: KES 135.00
+Subtotal: KES 20,250.00
+
+VAT (16%): KES 3,240.00
+Total Amount: KES 23,490.00

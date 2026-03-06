@@ -1,0 +1,21 @@
+TOTAL ENERGIES SERVICE STATION
+Mombasa Road, Nairobi
+
+Receipt: TOT-556789
+Date: March 3, 2024
+Time: 09:15 AM
+
+Vehicle: Company Fleet - KCA 789Z
+
+PETROL (SUPER)
+Volume: 60.5 liters
+Unit Price: KES 188.40 per liter
+Amount: KES 11,398.20
+
+Payment: Cash
+
+Pump Attendant: John M.
+Cashier: Mary K.
+
+Thank you!
+Drive safely with Total Energies

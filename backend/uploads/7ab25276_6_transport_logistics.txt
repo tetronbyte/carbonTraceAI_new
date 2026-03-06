@@ -1,0 +1,16 @@
+SWIFT LOGISTICS KENYA LTD
+Freight & Transportation Invoice
+
+Customer: EastAfrica Steel Components Ltd
+
+Origin: Mombasa Port
+Destination: Nairobi Industrial Area
+Distance: 485 km
+
+Cargo: Imported Steel Billets
+Weight: 18 tonnes
+
+Freight Charges: KES 85,000
+Fuel Surcharge: KES 8,500
+
+Total Invoice Amount: KES 126,092
