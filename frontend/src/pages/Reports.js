@@ -83,7 +83,7 @@ export function ReportsPage() {
     setGenerating(true);
     
     // Show processing message with estimated time
-    toast.info(`🤖 AI is generating your ${formData.complianceStandard} report... This typically takes 2-5 minutes. Please stay on this page!`, {
+    toast.info(`AI is generating your ${formData.complianceStandard} report... This typically takes 2-5 minutes. Please stay on this page!`, {
       duration: 10000,
       id: 'report-generation'
     });
@@ -99,7 +99,7 @@ export function ReportsPage() {
       });
       
       toast.dismiss('report-generation');
-      toast.success(`✅ ${formData.complianceStandard} report generated successfully!`);
+      toast.success(`${formData.complianceStandard} report generated successfully!`);
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
@@ -107,9 +107,9 @@ export function ReportsPage() {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
       
       if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
-        toast.warning('⏱️ Report generation is taking longer than expected. Please check Report History - it may complete shortly.');
+        toast.warning('Report generation is taking longer than expected. Please check Report History - it may complete shortly.');
       } else {
-        toast.error(`❌ Failed to generate report: ${errorMsg}`);
+        toast.error(`Failed to generate report: ${errorMsg}`);
       }
     } finally {
       setGenerating(false);
