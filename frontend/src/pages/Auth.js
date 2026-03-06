@@ -33,12 +33,12 @@ export function LoginPage() {
       {/* Left side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-20 h-20 rounded-xl flex items-center justify-center">
               <img src="/logo.png" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-['Outfit']">CarbonTraceAI</h1>
+              <h1 className="text-3xl font-bold font-['Outfit']">CarbonTraceAI</h1>
               <p className="text-sm text-muted-foreground">Carbon Accounting Platform</p>
             </div>
           </div>
@@ -93,11 +93,11 @@ export function LoginPage() {
         </div>
       </div>
 
-      {/* Right side - Visual */}
+      {/* Right side - Visual with Logo */}
       <div className="hidden lg:flex flex-1 items-center justify-center bg-card p-12">
         <div className="max-w-lg text-center">
-          <div className="w-32 h-32 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <Leaf className="w-16 h-16 text-primary" />
+          <div className="w-64 h-64 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-12">
+            <img src="/logo.png" alt="CarbonTraceAI" className="w-full h-full object-contain" />
           </div>
           <h3 className="text-2xl font-bold mb-4 font-['Outfit']">
             AI-Powered Carbon Accounting
@@ -137,11 +137,11 @@ export function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Left side - Visual */}
+      {/* Left side - Visual with Logo */}
       <div className="hidden lg:flex flex-1 items-center justify-center bg-card p-12">
         <div className="max-w-lg text-center">
-          <div className="w-32 h-32 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-            <Leaf className="w-16 h-16 text-primary" />
+          <div className="w-64 h-64 mx-auto mb-8 rounded-3xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center p-12">
+            <img src="/logo.png" alt="CarbonTraceAI" className="w-full h-full object-contain" />
           </div>
           <h3 className="text-2xl font-bold mb-4 font-['Outfit']">
             Join CarbonTraceAI
@@ -156,12 +156,12 @@ export function RegisterPage() {
       {/* Right side - Form */}
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="w-20 h-20 rounded-xl flex items-center justify-center">
               <img src="/logo.png" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-['Outfit']">CarbonTraceAI</h1>
+              <h1 className="text-3xl font-bold font-['Outfit']">CarbonTraceAI</h1>
               <p className="text-sm text-muted-foreground">Carbon Accounting Platform</p>
             </div>
           </div>
