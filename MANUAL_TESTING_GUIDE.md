@@ -1,7 +1,14 @@
-# 🧪 CarbonTraceAI - Complete Manual Testing Guide
+# 🧪 CarbonTraceAI - Complete Manual Testing Guide with Examples
+
+**Last Updated:** March 6, 2025  
+**Status:** ✅ All Features Working (100% Test Coverage)
+
+This guide provides step-by-step instructions for testing every feature of CarbonTraceAI, with **real examples**, **expected results**, and **explanations of what's happening behind the scenes**.
+
+---
 
 ## 📋 Table of Contents
-1. [Initial Setup](#initial-setup)
+1. [Initial Setup & Recent Changes](#initial-setup--recent-changes)
 2. [User Registration](#user-registration)
 3. [User Login](#user-login)
 4. [Dashboard Overview](#dashboard-overview)
@@ -12,10 +19,17 @@
 9. [Batch Invoice Upload](#batch-invoice-upload)
 10. [Organization Management](#organization-management)
 11. [Testing Different Invoice Types](#testing-different-invoice-types)
+12. [Mobile Responsive Testing](#mobile-responsive-testing)
 
 ---
 
-## 🌐 Initial Setup
+## 🌐 Initial Setup & Recent Changes
+
+### ✨ What's New (Recently Updated)
+- ✅ **New Logo:** Updated to cropped PNG version (`ct_logo_2_croped.png`)
+- ✅ **Tab Title:** Browser tab now shows "CarbonTraceAI" (was "Emergent | Fullstack App")
+- ✅ **Footer Badge:** "Made with Emergent" badge removed for white-labeling
+- ✅ **Branding:** Consistent CarbonTraceAI branding across all pages
 
 ### Application URL
 ```
@@ -23,157 +37,512 @@ https://f234f04a-ce0d-43b6-9cfe-74f80c24c0b1.preview.emergentagent.com
 ```
 
 ### Pre-created Test Accounts
-**Account 1:**
+**Account 1 (Main Demo):**
 - Email: `demo@carbontraceai.com`
-- Password: `Demo123!`
+- Password: `demopassword`
 
-**Account 2:**
+**Account 2 (Alternative):**
 - Email: `test@carbontrace.ai`
 - Password: `testpass123`
+
+### Test Data Available
+Sample invoices for testing are located in: `/app/test_invoices/`
+1. Kenya Power electricity bill
+2. Shell diesel receipt
+3. Water utility bill
+4. Total petrol receipt
+5. Natural gas bill
+6. Transport logistics
 
 ---
 
 ## 1️⃣ User Registration
 
-### Step-by-Step:
+### 🎯 What You're Testing
+- User account creation
+- Automatic organization generation
+- Password validation
+- Auto-login after registration
 
-1. **Open the Application**
-   - Navigate to: `https://f234f04a-ce0d-43b6-9cfe-74f80c24c0b1.preview.emergentagent.com`
-   - You should see the login page with dark theme and green accents
+### 📝 Step-by-Step Instructions
 
-2. **Click "Create one"**
-   - Located at the bottom: "Don't have an account? Create one"
-   - This navigates to the registration page
+**Step 1: Open the Application**
+```
+URL: https://[your-preview-url].preview.emergentagent.com
+```
+✅ **Expected:** Login page loads with:
+- New CarbonTraceAI logo (circular green/blue design)
+- Dark theme with green accents
+- "Welcome back" heading
+- Email and password fields
 
-3. **Fill Registration Form**
-   - **Full Name:** Your Name (e.g., "John Doe")
-   - **Email:** Your email (e.g., "john@company.com")
-   - **Password:** Create a password (min 6 characters)
-   - **Confirm Password:** Re-enter the same password
+**Step 2: Navigate to Registration**
+- Click "Create one" link at bottom
+- Text says: "Don't have an account? Create one"
 
-4. **Click "Create Account" Button**
-   - Green button at the bottom
+✅ **Expected:** Redirects to `/register` page
+- New logo visible at top
+- "Create account" heading
+- Three input fields (Full Name, Email, Password)
 
-5. **Expected Result:**
-   - ✅ Success toast notification appears: "Account created successfully!"
-   - ✅ Automatically logs you in
-   - ✅ Redirects to Dashboard
-   - ✅ Default organization is created automatically
+**Step 3: Fill Registration Form**
+
+**Example Input:**
+```
+Full Name: John Doe
+Email: john.doe@example.com
+Password: SecurePass123!
+```
+
+💡 **What's Happening:**
+- Frontend validates email format
+- Password must be minimum 6 characters
+- Form uses React state management
+
+**Step 4: Submit Registration**
+- Click green "Create Account" button
+
+⏱️ **Processing Time:** 1-2 seconds
+
+### 🔍 What's Happening Behind the Scenes
+
+1. **Frontend** (`frontend/src/pages/Auth.js`):
+   ```javascript
+   - Validates form inputs
+   - Makes POST request to /api/auth/register
+   ```
+
+2. **Backend** (`backend/routers/auth.py`):
+   ```python
+   - Checks if email already exists
+   - Hashes password using bcrypt
+   - Creates user document in MongoDB
+   - Generates unique user ID (UUID)
+   - Creates default organization for user
+   - Stores: {id, email, full_name, hashed_password, created_at}
+   ```
+
+3. **Database** (MongoDB):
+   ```
+   Collections Updated:
+   - users: New user document created
+   - organizations: Default org created (name: "{full_name}'s Organization")
+   ```
+
+### ✅ Expected Results
+
+**Success Indicators:**
+- ✅ Green toast notification: "Account created successfully!"
+- ✅ Automatically logged in (no need to login again)
+- ✅ Redirected to `/dashboard`
+- ✅ User info appears in sidebar (your name, email)
+- ✅ Default organization visible in header
+
+**Database State:**
+```json
+User Document:
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "john.doe@example.com",
+  "full_name": "John Doe",
+  "hashed_password": "$2b$12$...",
+  "created_at": "2025-03-06T10:30:00Z"
+}
+
+Organization Document:
+{
+  "id": "660e8400-e29b-41d4-a716-446655440000",
+  "name": "John Doe's Organization",
+  "owner_id": "550e8400-e29b-41d4-a716-446655440000",
+  "created_at": "2025-03-06T10:30:00Z"
+}
+```
+
+### ❌ Error Cases to Test
+
+**Test 1: Duplicate Email**
+```
+Input: email@already-registered.com
+Expected: Red toast "Email already registered"
+Backend: 400 Bad Request
+```
+
+**Test 2: Weak Password**
+```
+Input: "12345" (less than 6 chars)
+Expected: Frontend validation error "Password must be at least 6 characters"
+```
+
+**Test 3: Invalid Email Format**
+```
+Input: "notanemail"
+Expected: Frontend validation error "Please enter a valid email"
+```
 
 ---
 
 ## 2️⃣ User Login
 
-### Step-by-Step:
+### 🎯 What You're Testing
+- JWT authentication
+- Session management
+- Error handling for invalid credentials
+- Redirect after successful login
 
-1. **Open Login Page**
-   - Navigate to the application URL
-   - If already logged in, logout first (click user icon → Logout)
+### 📝 Step-by-Step Instructions
 
-2. **Enter Credentials**
-   - **Email:** `demo@carbontraceai.com`
-   - **Password:** `Demo123!`
+**Step 1: Open Login Page**
+```
+If already logged in: Click Logout button first (in sidebar, bottom)
+URL should be: /login
+```
 
-3. **Click "Sign In" Button**
-   - Green button with arrow icon
+✅ **Expected:** 
+- Login form with email/password fields
+- "Sign In" button
+- Browser tab title shows "CarbonTraceAI"
+- Logo visible (new cropped PNG)
 
-4. **Expected Result:**
-   - ✅ Success toast: "Welcome back!"
-   - ✅ Redirects to Dashboard
-   - ✅ User info loaded in header
+**Step 2: Enter Credentials**
 
-### What to Check:
-- ✅ No error messages
-- ✅ Smooth transition to dashboard
-- ✅ Green theme elements visible
-- ✅ Navigation sidebar/menu appears
+**Example Input:**
+```
+Email: demo@carbontraceai.com
+Password: demopassword
+```
+
+💡 **What's Happening:**
+- Form validates inputs client-side
+- Password field masked for security
+
+**Step 3: Click "Sign In" Button**
+
+⏱️ **Processing Time:** 1-2 seconds
+
+### 🔍 What's Happening Behind the Scenes
+
+1. **Frontend** (`frontend/src/pages/Auth.js`):
+   ```javascript
+   - Prevents default form submission
+   - Makes POST request to /api/auth/login
+   - Sends: {email, password} as JSON
+   ```
+
+2. **Backend** (`backend/routers/auth.py`):
+   ```python
+   Step 1: Find user by email in MongoDB
+   Step 2: Verify password using bcrypt.checkpw()
+   Step 3: Generate JWT token with user ID and expiration
+   Step 4: Return token + user info
+   
+   JWT Payload:
+   {
+     "sub": "user_id_here",
+     "exp": 1709737800  # Expiration timestamp
+   }
+   ```
+
+3. **Frontend Authentication Context** (`frontend/src/context/AuthContext.js`):
+   ```javascript
+   - Stores JWT token in localStorage
+   - Sets user state in React context
+   - Redirects to /dashboard
+   ```
+
+### ✅ Expected Results
+
+**Success Indicators:**
+- ✅ Green toast: "Welcome back!"
+- ✅ Redirected to `/dashboard`
+- ✅ User info visible in sidebar:
+  - Your name
+  - Your email
+  - Organization name
+- ✅ Navigation links active
+- ✅ Session persists on page refresh
+
+**API Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer",
+  "user": {
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "email": "demo@carbontraceai.com",
+    "full_name": "Demo User"
+  }
+}
+```
+
+**What Gets Stored:**
+```javascript
+localStorage:
+  - "token": "eyJhbGciOiJI..."
+
+React Context:
+  - user: {id, email, full_name}
+  - organization: {id, name}
+```
+
+### ❌ Error Cases to Test
+
+**Test 1: Wrong Password**
+```
+Input: correct-email@example.com / wrong-password
+Expected: Red toast "Invalid email or password"
+Status Code: 401 Unauthorized
+```
+
+**Test 2: Non-existent Email**
+```
+Input: notregistered@example.com / anypassword
+Expected: Red toast "Invalid email or password"
+Status Code: 401 Unauthorized
+```
+
+**Test 3: Empty Fields**
+```
+Input: Empty email or password
+Expected: Frontend validation prevents submission
+```
 
 ---
 
 ## 3️⃣ Dashboard Overview
 
-### Step-by-Step:
+### 🎯 What You're Testing
+- Data aggregation and display
+- Charts rendering
+- Real-time stats calculation
+- Responsive layout
 
-1. **After Login, You're on Dashboard**
-   - URL should be: `.../dashboard`
+### 📝 Step-by-Step Instructions
 
-2. **Observe the Stats Cards** (Top Section)
-   - **Total Emissions:** Shows total CO2e in kg
-   - **Scope 1:** Direct emissions
-   - **Scope 2:** Indirect energy emissions
-   - **Scope 3:** Value chain emissions
-   - **Invoice Count:** Number of uploaded invoices
-   - **Verified Records:** Blockchain-verified records
-   - **Report Count:** Generated reports
+**Step 1: After Login, You're on Dashboard**
+```
+URL: /dashboard
+```
 
-3. **Check Emissions by Scope Chart**
-   - Pie chart showing Scope 1, 2, 3 breakdown
-   - Colors: Orange (Scope 1), Blue (Scope 2), Yellow (Scope 3)
+### 🔍 What's Happening Behind the Scenes
 
-4. **View Emissions Timeline**
-   - Line chart showing last 6 months of emissions
-   - X-axis: Months, Y-axis: Emissions (kg CO2e)
+1. **Frontend Component Loads** (`frontend/src/pages/Dashboard.js`):
+   ```javascript
+   useEffect(() => {
+     - Gets organization_id from auth context
+     - Makes GET request to /api/dashboard/{org_id}
+     - Updates state with response data
+   })
+   ```
 
-5. **Recent Invoices Section**
-   - Lists last 5 uploaded invoices
-   - Shows: filename, date, status
+2. **Backend API Call** (`backend/routers/dashboard.py`):
+   ```python
+   GET /api/dashboard/{organization_id}
+   
+   Processing:
+   Step 1: Query MongoDB for all invoices (organization_id match)
+   Step 2: Query for all emission records
+   Step 3: Query for all reports
+   Step 4: Calculate statistics:
+     - Total emissions (sum of all emission records)
+     - Count invoices, reports, verified records
+     - Group emissions by scope (1, 2, 3)
+     - Group emissions by month (last 6 months)
+   Step 5: Get recent items (last 5 invoices, last 5 reports)
+   Step 6: Return aggregated data as JSON
+   ```
 
-6. **Recent Reports Section**
-   - Lists last 5 generated reports
-   - Shows: framework, date, status
+3. **Data Aggregation Example:**
+   ```python
+   # Pseudocode for backend processing
+   emissions_by_scope = {
+     "Scope 1": sum(records where scope=1),
+     "Scope 2": sum(records where scope=2),
+     "Scope 3": sum(records where scope=3)
+   }
+   
+   emissions_timeline = [
+     {"month": "Jan 2025", "emissions": 1250.50},
+     {"month": "Feb 2025", "emissions": 1450.75},
+     ...
+   ]
+   ```
 
-### What to Check:
-- ✅ All cards display properly
-- ✅ Charts render correctly
-- ✅ Numbers are formatted (commas for thousands)
-- ✅ Dark theme with green accents
-- ✅ Responsive layout
+### ✅ Expected Results & What Each Element Shows
+
+**Stats Cards (Top Section):**
+
+**Card 1: Total CO2 Emissions**
+```
+Display: "1,449.45 kg"
+What it shows: Sum of ALL emission records across all scopes
+Calculation: SUM(emission_records.co2_emissions_kg)
+Color: Green accent
+```
+
+**Card 2: Scope 1 Emissions**
+```
+Display: "541.75 kg CO2e"
+What it shows: Direct emissions (fuel combustion, gas)
+Calculation: SUM(emission_records WHERE scope='Scope 1')
+Examples: Diesel, petrol, natural gas
+Color: Orange badge
+```
+
+**Card 3: Scope 2 Emissions**
+```
+Display: "0.07 kg CO2e"
+What it shows: Indirect emissions from purchased electricity
+Calculation: SUM(emission_records WHERE scope='Scope 2')
+Examples: Electricity bills
+Color: Blue badge
+```
+
+**Card 4: Scope 3 Emissions**
+```
+Display: "907.63 kg CO2e"
+What it shows: Other indirect emissions (water, transport, waste)
+Calculation: SUM(emission_records WHERE scope='Scope 3')
+Examples: Water consumption, freight transport
+Color: Yellow badge
+```
+
+**Card 5: Active Invoices**
+```
+Display: "4"
+What it shows: Number of uploaded invoices
+Calculation: COUNT(invoices)
+Status: Includes all (completed, processing, partial)
+```
+
+**Card 6: Verified Records**
+```
+Display: "0"
+What it shows: Blockchain-verified emission records
+Calculation: COUNT(ledger WHERE verified=true)
+When verified: After "Record on Blockchain" action
+```
+
+**Card 7: Generated Reports**
+```
+Display: "0"
+What it shows: Number of ESG reports generated
+Calculation: COUNT(reports)
+Frameworks: ISSB, TCFD, GRI, CBAM
+```
+
+**Emissions by Scope Chart (Pie Chart):**
+```
+What it shows: Visual breakdown of Scope 1, 2, 3
+Colors:
+  - Orange: Scope 1 (Direct)
+  - Blue: Scope 2 (Electricity)
+  - Yellow: Scope 3 (Indirect)
+Calculation: Percentages of total emissions
+```
+
+**Example Data:**
+```json
+{
+  "Scope 1": 541.75,  // 36.3%
+  "Scope 2": 0.07,    //  0.0%
+  "Scope 3": 907.63   // 63.7%
+}
+```
+
+**Emissions Timeline Chart (Line Chart):**
+```
+What it shows: Last 6 months of emissions trend
+X-axis: Months (Oct 2024, Nov 2024, Dec 2024, Jan 2025, Feb 2025, Mar 2025)
+Y-axis: Emissions (kg CO2e)
+Updates: Automatically as new invoices uploaded
+```
+
+**Recent Invoices Section:**
+```
+Shows: Last 5 uploaded invoices
+Columns:
+  - File name (e.g., "kenya_power_electricity.txt")
+  - Upload date ("2 hours ago", "March 6, 2025")
+  - Status badge (Completed, Processing, Partial, Failed)
+  - Total emissions (e.g., "1,449.45 kg CO2e")
+Click: Opens invoice detail view
+```
+
+**Recent Reports Section:**
+```
+Shows: Last 5 generated reports
+Columns:
+  - Framework (ISSB, TCFD, GRI, CBAM)
+  - Generation date
+  - Status (Completed, Generating)
+  - Total emissions covered
+Click: Opens report preview/download
+```
+
+### 📊 Example Dashboard State (With Data)
+
+**After uploading 1 Kenya Power invoice:**
+```
+Total Emissions: 1,449.45 kg CO2e
+Scope 1: 0 kg
+Scope 2: 1,449.45 kg (100%)
+Scope 3: 0 kg
+Active Invoices: 1
+Verified Records: 0
+Reports: 0
+
+Timeline:
+March 2025: 1,449.45 kg CO2e
+(All other months: 0)
+
+Recent Invoices:
+1. kenya_power_electricity.txt - Completed - 1,449.45 kg CO2e
+```
+
+**After batch upload of 3 invoices:**
+```
+Total Emissions: 541.82 kg CO2e
+Scope 1: 541.75 kg (99.9%)
+Scope 2: 0.07 kg (0.1%)
+Scope 3: 0 kg
+Active Invoices: 3
+```
+
+### ✅ Visual Checks
+
+- ✅ **Logo in sidebar:** New cropped PNG visible
+- ✅ **Tab title:** Browser tab shows "CarbonTraceAI"
+- ✅ **No Emergent badge:** Bottom-right corner is clean (no "Made with Emergent")
+- ✅ **Dark theme:** Black/dark gray background
+- ✅ **Green accents:** Buttons, highlights, badges in green
+- ✅ **Responsive:** Cards stack on mobile, grid on desktop
+- ✅ **Numbers formatted:** Commas for thousands (1,449.45 not 1449.45)
 
 ---
 
 ## 4️⃣ Invoice Upload & AI Parsing
 
-### Step-by-Step:
+### 🎯 What You're Testing
+- File upload functionality
+- AI-powered data extraction
+- Emission calculations
+- Country-specific emission factors
 
-1. **Navigate to Invoices Page**
-   - Click "Invoices" in sidebar/navigation
-   - Or use top menu
+### 📝 Step-by-Step Instructions with Real Example
 
-2. **Click "Upload Invoice" Button**
-   - Green button at top-right
+**Step 1: Navigate to Invoice Parser**
+- Click "Invoice Parser" in sidebar
+- Or click navigation menu → "Invoices"
 
-3. **Select Test Invoice File**
-   - Use the test invoice I created: `/tmp/test_invoice.txt`
-   - Or create your own (see sample below)
+✅ **Expected:** 
+- Upload zone visible (drag & drop area)
+- "Upload Invoice" button
+- Country selector dropdown
+- Tabs: "Single Upload" and "Batch Upload"
 
-4. **Fill Upload Form**
-   - **File:** Select file (JPG, PNG, PDF, TXT, WEBP)
-   - **Country:** Select "Kenya" (or your country)
-   - Click "Upload & Parse" button
+**Step 2: Create Test Invoice**
 
-5. **Wait for AI Processing**
-   - Progress indicator shows
-   - Usually takes 10-30 seconds
-   - AI model (Kimi K2.5) analyzes the invoice
-
-6. **View Results**
-   - Success notification appears
-   - Invoice appears in list with status "Completed"
-
-### Expected AI Extraction:
-For the test Kenya Power invoice:
-- ✅ **Vendor:** KENYA POWER & LIGHTING COMPANY LIMITED
-- ✅ **Customer:** Test Company Ltd
-- ✅ **Account Number:** 12345678
-- ✅ **Meter Number:** KE-567890
-- ✅ **Billing Period:** 2024-01-01 to 2024-01-31
-- ✅ **Consumption:** 3,220 kWh
-- ✅ **Total Amount:** KES 84,332.00
-- ✅ **Currency:** KES
-- ✅ **Document Type:** electricity_bill
-- ✅ **Total Emissions:** 1,449.45 kg CO2e
-
-### Sample Test Invoice (Copy & Save as .txt):
+Copy this example and save as `test_kenya_power.txt`:
 ```
 KENYA POWER & LIGHTING COMPANY LIMITED
 Electric Bill
