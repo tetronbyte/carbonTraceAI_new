@@ -1,0 +1,21 @@
+KENYA POWER & LIGHTING COMPANY LIMITED
+Electric Bill
+
+Account Number: 77889922
+Customer Name: EastAfrica Steel Components Ltd
+Service Address: Mombasa Road Industrial Zone, Nairobi
+Meter Number: KE-998877
+
+Bill Date: March 1, 2025
+Due Date: March 25, 2025
+Billing Period: February 1 – February 28, 2025
+
+Previous Reading: 102,450 kWh
+Current Reading: 105,670 kWh
+Consumption: 3,220 kWh
+
+Energy Charge (3,220 kWh @ KES 22.50/kWh): KES 72,450.00
+Fixed Charge: KES 250.00
+VAT (16%): KES 11,872.00
+
+Total Amount Due: KES 84,572.00
