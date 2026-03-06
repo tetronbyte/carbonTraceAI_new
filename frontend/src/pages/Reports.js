@@ -145,7 +145,7 @@ export function ReportsPage() {
       });
       
       toast.dismiss('cbam-generation');
-      toast.success('✅ CBAM report generated successfully!');
+      toast.success('CBAM report generated successfully!');
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
@@ -153,9 +153,9 @@ export function ReportsPage() {
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
       
       if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
-        toast.warning('⏱️ CBAM report generation is taking longer than expected. Please check Report History - it may complete shortly.');
+        toast.warning('CBAM report generation is taking longer than expected. Please check Report History - it may complete shortly.');
       } else {
-        toast.error(`❌ Failed to generate CBAM report: ${errorMsg}`);
+        toast.error(`Failed to generate CBAM report: ${errorMsg}`);
       }
     } finally {
       setGenerating(false);
