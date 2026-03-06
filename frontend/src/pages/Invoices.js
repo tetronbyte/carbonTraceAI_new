@@ -99,13 +99,16 @@ export function InvoicesPage() {
       
       // Poll task status
       let attempts = 0;
-      const maxAttempts = 100; // 100 × 3 sec = 5 minutes
+      const maxAttempts = 120; // 120 × 3 sec = 6 minutes (enough for AI processing)
       
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
         const statusResponse = await api.getUploadStatus(task_id);
         const taskStatus = statusResponse.data;
+        
+        // Log for debugging
+        console.log(`Upload attempt ${attempts}: status=${taskStatus.status}, progress=${taskStatus.progress}`);
         
         if (taskStatus.status === 'completed') {
           toast.dismiss('ai-processing');
@@ -125,11 +128,14 @@ export function InvoicesPage() {
           toast.dismiss('ai-processing');
           toast.error(`Failed to parse invoice: ${taskStatus.error || 'Unknown error'}`);
           break;
-        } else if (taskStatus.status === 'processing') {
+        } else if (taskStatus.status === 'processing' || taskStatus.status === 'queued') {
           // Show progress update every 10 attempts (30 seconds)
           if (attempts > 0 && attempts % 10 === 0) {
             const elapsed = Math.floor(attempts * 3 / 60);
-            toast.info(`AI processing... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`, {
+            const progressMsg = taskStatus.status === 'queued' 
+              ? `Waiting to start... (${elapsed} min elapsed)`
+              : `AI processing... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`;
+            toast.info(progressMsg, {
               duration: 5000,
               id: 'ai-processing'
             });
@@ -141,7 +147,7 @@ export function InvoicesPage() {
       
       if (attempts >= maxAttempts) {
         toast.dismiss('ai-processing');
-        toast.warning('Processing is taking longer than expected. Check the invoice list shortly.');
+        toast.warning('Processing is taking longer than expected. Check the invoice list in a few minutes - it may still be processing.');
       }
       
       fetchInvoices();
@@ -189,13 +195,16 @@ export function InvoicesPage() {
       
       // Poll task status
       let attempts = 0;
-      const maxAttempts = 180; // 180 × 3 sec = 9 minutes
+      const maxAttempts = 150; // 150 × 3 sec = 7.5 minutes (enough for large batches)
       
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
         const statusResponse = await api.getBatchUploadStatus(task_id);
         const taskStatus = statusResponse.data;
+        
+        // Log for debugging
+        console.log(`Batch attempt ${attempts}: status=${taskStatus.status}, progress=${taskStatus.progress}`);
         
         setUploadProgress(20 + (taskStatus.progress || 0) * 0.7);
         
@@ -219,11 +228,14 @@ export function InvoicesPage() {
           toast.dismiss('batch-upload');
           toast.error(`Batch processing failed: ${taskStatus.error || 'Unknown error'}`);
           break;
-        } else if (taskStatus.status === 'processing') {
+        } else if (taskStatus.status === 'processing' || taskStatus.status === 'queued') {
           // Show progress update every 10 attempts (30 seconds)
           if (attempts > 0 && attempts % 10 === 0) {
             const elapsed = Math.floor(attempts * 3 / 60);
-            toast.info(`AI Processing batch... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`, {
+            const progressMsg = taskStatus.status === 'queued'
+              ? `Waiting to start batch processing... (${elapsed} min elapsed)`
+              : `AI Processing batch... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`;
+            toast.info(progressMsg, {
               duration: 5000,
               id: 'batch-upload'
             });
@@ -235,7 +247,7 @@ export function InvoicesPage() {
       
       if (attempts >= maxAttempts) {
         toast.dismiss('batch-upload');
-        toast.warning('Processing is taking longer than expected. Check your invoices list shortly.');
+        toast.warning('Batch processing is taking longer than expected. Check your invoices list in a few minutes - they may still be processing.');
       }
       
       fetchInvoices();
