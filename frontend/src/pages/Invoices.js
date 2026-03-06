@@ -88,17 +88,21 @@ export function InvoicesPage() {
 
     try {
       // Upload the file
+      toast.info('📤 Uploading invoice...', { duration: 2000 });
       const response = await api.uploadInvoice(file, organization.id, selectedCountry);
       const invoiceId = response.data.id;
       
-      // Show processing message
-      toast.info('AI is analyzing your invoice... Please wait (this may take 30-60 seconds)', {
-        duration: 5000
+      // Show AI processing message
+      const fileType = ext.toUpperCase();
+      const estimatedTime = ['png', 'jpg', 'jpeg', 'pdf'].includes(ext) ? '1-2 minutes' : '30-60 seconds';
+      toast.info(`🤖 AI is analyzing your ${fileType} invoice... This will take approximately ${estimatedTime}. Please wait!`, {
+        duration: 10000,
+        id: 'ai-processing'
       });
       
       // Poll for completion
       let attempts = 0;
-      const maxAttempts = 60; // 60 attempts × 2 seconds = 2 minutes max
+      const maxAttempts = 120; // 120 × 2 sec = 4 minutes max
       let invoice = null;
       
       while (attempts < maxAttempts) {
@@ -108,19 +112,38 @@ export function InvoicesPage() {
         const invoicesResponse = await api.getInvoices(organization.id);
         invoice = invoicesResponse.data.find(inv => inv.id === invoiceId);
         
-        if (!invoice) break;
+        if (!invoice) {
+          toast.error('❌ Invoice not found. Please refresh the page.');
+          break;
+        }
+        
+        // Show progress every 30 seconds
+        if (attempts > 0 && attempts % 15 === 0) {
+          const elapsed = Math.floor(attempts * 2 / 60);
+          toast.info(`⏳ Still processing... (${elapsed} min elapsed)`, {
+            duration: 3000,
+            id: 'ai-processing'
+          });
+        }
         
         if (invoice.status === 'completed') {
+          toast.dismiss('ai-processing');
           setParseResult(invoice);
           
           if (invoice.extracted_data?.parse_error) {
-            toast.warning('Invoice parsed with some issues. Please review the data.');
+            toast.warning('⚠️ Invoice processed with some issues. Please review the data.');
           } else {
-            toast.success('Invoice parsed successfully with AI!');
+            toast.success('✅ Invoice parsed successfully by AI!');
           }
           break;
-        } else if (invoice.status === 'failed' || invoice.status === 'partial') {
-          toast.error(invoice.notes || 'Failed to parse invoice');
+        } else if (invoice.status === 'failed') {
+          toast.dismiss('ai-processing');
+          toast.error(`❌ Failed to parse invoice: ${invoice.notes || 'Unknown error'}`);
+          break;
+        } else if (invoice.status === 'partial') {
+          toast.dismiss('ai-processing');
+          toast.warning(`⚠️ Partial parsing: ${invoice.notes || 'Some data could not be extracted'}`);
+          setParseResult(invoice);
           break;
         }
         
@@ -128,12 +151,14 @@ export function InvoicesPage() {
       }
       
       if (attempts >= maxAttempts && invoice?.status === 'processing') {
-        toast.warning('Invoice is still processing. Please check back in a moment.');
+        toast.dismiss('ai-processing');
+        toast.warning('⏱️ Processing is taking longer than expected. Please check the invoice list in a moment.');
       }
       
       fetchInvoices();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Error parsing invoice');
+      toast.dismiss('ai-processing');
+      toast.error(`❌ Upload error: ${error.response?.data?.detail || error.message || 'Network error'}`);
     } finally {
       setUploading(false);
     }
@@ -152,8 +177,9 @@ export function InvoicesPage() {
     
     // Show estimated time
     const estimatedMinutes = Math.ceil((batchFiles.length * 45) / 60);
-    toast.info(`Processing ${batchFiles.length} files with AI... Estimated time: ${estimatedMinutes}-${estimatedMinutes + 3} minutes. Please stay on this page and wait!`, {
-      duration: 8000
+    toast.info(`📤 Uploading ${batchFiles.length} files to server...`, {
+      duration: 3000,
+      id: 'batch-upload'
     });
 
     try {
@@ -168,14 +194,15 @@ export function InvoicesPage() {
       
       const batchId = response.data.batch_id;
       
+      toast.info(`🤖 AI is processing ${batchFiles.length} files... Estimated time: ${estimatedMinutes}-${estimatedMinutes + 3} minutes. Please stay on this page!`, {
+        duration: 15000,
+        id: 'batch-upload'
+      });
+      
       // Poll for completion of all files in batch
       let attempts = 0;
-      const maxAttempts = 90; // 90 attempts × 2 seconds = 3 minutes max per check, 30 min total timeout
+      const maxAttempts = 180; // 180 × 2 sec = 6 minutes per check cycle
       let allCompleted = false;
-      
-      toast.info('AI is processing your batch... Checking progress every few seconds', {
-        duration: 5000
-      });
       
       while (attempts < maxAttempts && !allCompleted) {
         await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
@@ -188,11 +215,22 @@ export function InvoicesPage() {
         const failed = batchInvoices.filter(inv => inv.status === 'failed' || inv.status === 'partial').length;
         const processing = batchInvoices.filter(inv => inv.status === 'processing').length;
         
-        setUploadProgress(30 + (completed / batchFiles.length) * 70);
+        const progressPercent = 30 + (completed / batchFiles.length) * 70;
+        setUploadProgress(progressPercent);
+        
+        // Show progress update every 15 attempts (30 seconds)
+        if (attempts > 0 && attempts % 15 === 0 && processing > 0) {
+          const elapsed = Math.floor(attempts * 2 / 60);
+          toast.info(`⏳ AI Processing: ${completed}/${batchFiles.length} completed, ${processing} still analyzing... (${elapsed} min elapsed)`, {
+            duration: 5000,
+            id: 'batch-upload'
+          });
+        }
         
         if (processing === 0) {
           // All done (either completed or failed)
           allCompleted = true;
+          toast.dismiss('batch-upload');
           
           const finalResult = {
             total_files: batchInvoices.length,
@@ -206,31 +244,28 @@ export function InvoicesPage() {
           setBatchResult(finalResult);
           setBatchFiles([]);
           
-          if (failed > 0) {
-            toast.warning(`Processed ${completed} of ${batchInvoices.length} files. ${failed} failed.`);
+          if (failed > 0 && completed > 0) {
+            toast.warning(`⚠️ Batch Complete: ${completed} succeeded, ${failed} failed. Check details below.`);
+          } else if (failed > 0) {
+            toast.error(`❌ All ${failed} files failed to process. Please check the error messages.`);
           } else {
-            toast.success(`Successfully processed ${completed} invoices!`);
+            toast.success(`✅ Success! All ${completed} invoices processed by AI!`);
           }
           break;
         }
         
         attempts++;
-        
-        // Show progress update every 10 attempts (20 seconds)
-        if (attempts % 10 === 0) {
-          toast.info(`Progress: ${completed}/${batchFiles.length} completed, ${processing} still processing...`, {
-            duration: 3000
-          });
-        }
       }
       
       if (attempts >= maxAttempts && !allCompleted) {
-        toast.warning('Some files are still processing. Please check the invoice list in a moment.');
+        toast.dismiss('batch-upload');
+        toast.warning('⏱️ Some files are still processing. Please check the invoice list - they may complete shortly.');
       }
       
       fetchInvoices();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Error processing batch. The request may have timed out - check your invoices list to see if any were processed.');
+      toast.dismiss('batch-upload');
+      toast.error(`❌ Batch upload error: ${error.response?.data?.detail || error.message || 'Network error. Check your invoices list to see if any were processed.'}`);
     } finally {
       setUploading(false);
       setUploadProgress(0);

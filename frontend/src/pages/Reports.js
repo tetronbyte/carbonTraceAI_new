@@ -83,8 +83,9 @@ export function ReportsPage() {
     setGenerating(true);
     
     // Show processing message with estimated time
-    toast.info(`Generating ${formData.complianceStandard} report with AI... This may take 2-5 minutes. Please stay on this page!`, {
-      duration: 8000
+    toast.info(`🤖 AI is generating your ${formData.complianceStandard} report... This typically takes 2-5 minutes. Please stay on this page!`, {
+      duration: 10000,
+      id: 'report-generation'
     });
     
     try {
@@ -97,11 +98,19 @@ export function ReportsPage() {
         quarter: formData.reportType === 'Quarterly' ? formData.quarter : null,
       });
       
-      toast.success('Report generated successfully!');
+      toast.dismiss('report-generation');
+      toast.success(`✅ ${formData.complianceStandard} report generated successfully!`);
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to generate report. If the request timed out, check Report History - it may have completed anyway.');
+      toast.dismiss('report-generation');
+      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
+      
+      if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
+        toast.warning('⏱️ Report generation is taking longer than expected. Please check Report History - it may complete shortly.');
+      } else {
+        toast.error(`❌ Failed to generate report: ${errorMsg}`);
+      }
     } finally {
       setGenerating(false);
     }
@@ -122,8 +131,9 @@ export function ReportsPage() {
     setGenerating(true);
     
     // Show processing message with estimated time
-    toast.info(`Generating CBAM report with AI... This may take 2-4 minutes. Please stay on this page!`, {
-      duration: 8000
+    toast.info(`🤖 AI is generating your CBAM report... This typically takes 2-4 minutes. Please stay on this page!`, {
+      duration: 10000,
+      id: 'cbam-generation'
     });
     
     try {
@@ -134,11 +144,19 @@ export function ReportsPage() {
         products: validProducts,
       });
       
-      toast.success('CBAM report generated successfully!');
+      toast.dismiss('cbam-generation');
+      toast.success('✅ CBAM report generated successfully!');
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to generate CBAM report. If the request timed out, check Report History - it may have completed anyway.');
+      toast.dismiss('cbam-generation');
+      const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
+      
+      if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
+        toast.warning('⏱️ CBAM report generation is taking longer than expected. Please check Report History - it may complete shortly.');
+      } else {
+        toast.error(`❌ Failed to generate CBAM report: ${errorMsg}`);
+      }
     } finally {
       setGenerating(false);
     }
