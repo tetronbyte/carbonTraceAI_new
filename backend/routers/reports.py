@@ -88,7 +88,7 @@ async def generate_report(
     await reports_collection.insert_one(report)
     
     try:
-        # Generate report content
+        # Generate report content (disable AI by default for speed)
         report_result = create_esg_report(
             org_name=request.org_name,
             report_period=request.report_period,
@@ -98,7 +98,7 @@ async def generate_report(
             scope3=scope3,
             report_type=request.report_type or "Annual",
             quarter=request.quarter,
-            use_ai=True
+            use_ai=False  # Changed to False for faster generation
         )
         
         # Update report
@@ -178,7 +178,7 @@ async def generate_cbam_report(
     await reports_collection.insert_one(report)
     
     try:
-        # Generate CBAM report
+        # Generate CBAM report (disable AI for speed)
         report_result = create_esg_report(
             org_name=request.org_name,
             report_period=request.report_period,
@@ -188,7 +188,7 @@ async def generate_cbam_report(
             scope3=total_emissions * 0.1,
             report_type="CBAM Declaration",
             products=products_data,
-            use_ai=True
+            use_ai=False  # Changed to False for faster generation
         )
         
         # Update report
