@@ -39,6 +39,10 @@ EMISSION_FACTORS = {
         "natural_gas": 2.0,
         "lpg": 1.51,
         "coal": 2.42,
+        # High CBAM risk sectors
+        "steel": 1.85,  # Major export - R52.4B at risk
+        "aluminum": 8.5,
+        "cement": 0.83,
     },
     "ghana": {
         "electricity": 0.35,
@@ -63,6 +67,10 @@ EMISSION_FACTORS = {
         "gasoline": 2.31,
         "natural_gas": 2.0,
         "lpg": 1.51,
+        # CBAM risk sectors
+        "cement": 0.83,
+        "steel": 1.85,
+        "fertilizer": 3.5,
     },
     "morocco": {
         "electricity": 0.62,
@@ -79,6 +87,49 @@ EMISSION_FACTORS = {
         "gasoline": 2.31,
         "natural_gas": 2.0,
         "lpg": 1.51,
+    },
+    # North Africa - High CBAM risk countries
+    "algeria": {
+        "electricity": 0.52,  # Natural gas dominated grid
+        "diesel": 2.68,
+        "petrol": 2.31,
+        "gasoline": 2.31,
+        "natural_gas": 2.0,
+        "lpg": 1.51,
+        "cement": 0.83,  # kg CO2/kg cement
+        "steel": 1.85,  # kg CO2/kg steel
+        "fertilizer": 3.5,  # kg CO2/kg fertilizer
+    },
+    "tunisia": {
+        "electricity": 0.48,  # Gas and imports mix
+        "diesel": 2.68,
+        "petrol": 2.31,
+        "gasoline": 2.31,
+        "natural_gas": 2.0,
+        "lpg": 1.51,
+        "cement": 0.83,
+        "steel": 1.85,
+        "fertilizer": 3.5,
+    },
+    # Southern Africa
+    "mozambique": {
+        "electricity": 0.05,  # Mostly hydro (Cahora Bassa)
+        "diesel": 2.68,
+        "petrol": 2.31,
+        "gasoline": 2.31,
+        "natural_gas": 2.0,
+        "lpg": 1.51,
+        "aluminum": 8.5,  # kg CO2/kg aluminum
+    },
+    # Central/West Africa
+    "cameroon": {
+        "electricity": 0.12,  # Hydro dominated
+        "diesel": 2.68,
+        "petrol": 2.31,
+        "gasoline": 2.31,
+        "natural_gas": 2.0,
+        "lpg": 1.51,
+        "aluminum": 8.5,
     },
     # Default/International
     "default": {
@@ -97,6 +148,12 @@ EMISSION_FACTORS = {
         "transport": 0.15,  # per km
         "generator": 2.68,
         "water": 0.0003,  # kg CO2/liter (treatment)
+        # Industrial products (CBAM covered sectors)
+        "cement": 0.83,  # kg CO2/kg cement
+        "steel": 1.85,  # kg CO2/kg steel  
+        "aluminum": 8.5,  # kg CO2/kg aluminum
+        "fertilizer": 3.5,  # kg CO2/kg fertilizer
+        "hydrogen": 10.0,  # kg CO2/kg hydrogen
     }
 }
 
