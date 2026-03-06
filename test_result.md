@@ -101,3 +101,251 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: |
+  CarbonTraceAI - AI-Powered Carbon Accounting Platform for African SMEs
+  Cloned from GitHub repository: https://github.com/tetronbyte/carbonTraceAI_new.git
+  
+  Key Features:
+  1. User Authentication (Register/Login with JWT)
+  2. Dashboard - Carbon data overview with stats, charts, timeline
+  3. Invoice Parser - AI-powered invoice parsing using Ollama Cloud API
+     - Single file upload
+     - Batch upload (up to 20 files)
+     - Extracts carbon emissions data from invoices
+  4. Carbon Ledger - Blockchain-verified emissions tracking
+  5. ESG Report Generation - AI-powered compliance reports (ISSB, TCFD, GRI, CBAM)
+  
+  Recent Changes:
+  - Logo updated to new cropped PNG (ct_logo_2_croped.png)
+  - Browser tab title changed to "CarbonTraceAI"
+  - "Made with Emergent" footer badge removed
+  - All branding updated across login, register, and dashboard pages
+
+backend:
+  - task: "User Registration API"
+    implemented: true
+    working: true
+    file: "backend/routers/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Recent branding changes completed. Need to verify all backend APIs still functioning correctly."
+
+  - task: "User Login API with JWT"
+    implemented: true
+    working: true
+    file: "backend/routers/auth.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Login flow working. Need comprehensive re-test after UI updates."
+
+  - task: "Single Invoice Upload with AI Parsing"
+    implemented: true
+    working: true
+    file: "backend/routers/invoices.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Using kimi-k2.5:cloud model. Previously had issues with deepseek-v3.2:cloud returning empty responses. Critical AI feature - needs thorough testing."
+
+  - task: "Batch Invoice Upload (up to 20 files)"
+    implemented: true
+    working: true
+    file: "backend/routers/invoices.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Batch upload with emission aggregation. Need to verify with real invoices."
+
+  - task: "Dashboard Stats API"
+    implemented: true
+    working: true
+    file: "backend/routers/dashboard.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Returns stats, charts, timeline data."
+
+  - task: "ESG Report Generation (AI-Powered)"
+    implemented: true
+    working: true
+    file: "backend/routers/reports.py, backend/services/report_service.py"
+    stuck_count: 1
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Generates ISSB, TCFD, GRI, CBAM reports. Uses kimi-k2.5:cloud. Can take up to 2 minutes. Frontend timeout increased to 3 minutes."
+
+  - task: "Carbon Ledger API"
+    implemented: true
+    working: true
+    file: "backend/routers/ledger.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Blockchain-verified emissions tracking."
+
+frontend:
+  - task: "Login Page with New Logo"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Auth.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Just updated with new cropped PNG logo. Verified via screenshot tool. Need full e2e test."
+
+  - task: "Register Page with New Logo"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Auth.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Just updated with new cropped PNG logo. Verified via screenshot tool. Need full e2e test."
+
+  - task: "Dashboard with Stats and Charts"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Dashboard.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Sidebar logo updated. Tab title changed to 'CarbonTraceAI'. Need to verify data display."
+
+  - task: "Invoice Parser Page (Single & Batch Upload)"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Invoices.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "File upload UI for single and batch. Need to test end-to-end with actual file uploads."
+
+  - task: "Carbon Ledger Page"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Ledger.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Displays emission records and blockchain verification status."
+
+  - task: "ESG Reports Page"
+    implemented: true
+    working: true
+    file: "frontend/src/pages/Reports.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Form to generate reports. Need to test all 4 frameworks (ISSB, TCFD, GRI, CBAM)."
+
+  - task: "Remove Made with Emergent Footer"
+    implemented: true
+    working: true
+    file: "frontend/public/index.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Successfully removed. Verified via screenshot tool - no badge visible."
+
+  - task: "Browser Tab Title Update"
+    implemented: true
+    working: true
+    file: "frontend/public/index.html"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Changed to 'CarbonTraceAI'. Verified working on all pages."
+
+metadata:
+  created_by: "main_agent"
+  version: "1.0"
+  test_sequence: 3
+  run_ui: true
+
+test_plan:
+  current_focus:
+    - "User Authentication (Register/Login) - Full e2e flow"
+    - "Single Invoice Upload with AI Parsing - Test with real invoice files"
+    - "Batch Invoice Upload - Test with multiple files"
+    - "ESG Report Generation - All 4 frameworks (ISSB, TCFD, GRI, CBAM)"
+    - "Dashboard Data Display - Verify stats, charts, timeline"
+    - "Navigation and UI - Test all pages, sidebar, responsive design"
+  stuck_tasks:
+    - "Invoice AI Parsing - Previously had model issues (deepseek-v3.2:cloud failed, now using kimi-k2.5:cloud)"
+    - "ESG Report Generation - Can be slow (up to 2 minutes), need to verify timeout handling"
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "main"
+    message: |
+      COMPREHENSIVE TESTING REQUEST
+      
+      User has requested thorough testing of all features after recent branding updates:
+      - Logo changed to new cropped PNG
+      - Tab title updated to "CarbonTraceAI"
+      - "Made with Emergent" footer removed
+      
+      TESTING PRIORITIES:
+      1. Verify all backend APIs still working correctly
+      2. Test AI-powered features (invoice parsing, report generation) with Ollama Cloud API
+      3. Test complete frontend flows including file uploads
+      4. Verify UI branding changes are consistent across all pages
+      5. Test edge cases and error handling
+      
+      CRITICAL AREAS:
+      - AI Invoice Parsing: Using kimi-k2.5:cloud model (previously had issues with deepseek)
+      - ESG Report Generation: Can take 2+ minutes, verify timeout handling
+      - File Uploads: Single and batch (up to 20 files)
+      - All 4 ESG Frameworks: ISSB, TCFD, GRI, CBAM
+      
+      Please create comprehensive test files and provide detailed results.
+      User wants to see the test files and understand the testing process.

@@ -1,0 +1,9 @@
+
+Electricity Bill - Kenya Power
+Invoice: ELEC-2025-001
+Date: 2025-11-30
+Customer: Carbon Test SME
+Consumption: 500 kWh
+Unit Price: 15.00 KES/kWh
+Total: 7,500 KES
+Location: Nairobi, Kenya

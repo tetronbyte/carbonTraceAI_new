@@ -1,0 +1,9 @@
+
+Gas Bill - Kenya Gas
+Invoice: GAS-2025-003
+Date: 2025-11-20
+Consumption: 50 m3
+Unit Price: 80.00 KES/m3
+Total: 4,000 KES
+Type: Natural Gas
+Location: Mombasa, Kenya

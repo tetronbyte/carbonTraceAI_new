@@ -1,0 +1,19 @@
+
+Kenya Power Invoice
+Invoice Number: KP-2025-12345
+Date: 2025-12-15
+Customer: Test SME Ltd
+Account Number: 123456789
+Billing Period: Dec 1-31, 2025
+
+Electricity Consumption:
+- Peak Usage: 450 kWh @ KES 18.50 = KES 8,325
+- Off-Peak Usage: 300 kWh @ KES 12.00 = KES 3,600
+
+Subtotal: KES 11,925
+VAT (16%): KES 1,908
+Total: KES 13,833
+
+Payment Due: 2025-01-15
+Meter Number: MTR-2345678
+Location: Nairobi, Kenya

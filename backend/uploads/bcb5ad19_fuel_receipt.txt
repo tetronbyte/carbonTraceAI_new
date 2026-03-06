@@ -1,0 +1,8 @@
+
+Fuel Receipt - Shell Kenya
+Receipt: FUEL-2025-002
+Date: 2025-11-25
+Diesel: 200 liters
+Price per liter: 150.00 KES
+Total: 30,000 KES
+Vehicle: Company Truck
