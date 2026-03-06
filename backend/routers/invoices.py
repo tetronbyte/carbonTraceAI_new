@@ -47,14 +47,31 @@ class SingleUploadTaskResponse(BaseModel):
 async def process_single_upload_task(
     task_id: str,
     invoice_id: str,
-    file_path: str,
+    file_content: bytes,
+    file_name: str,
     file_ext: str,
     country: str,
     organization_id: str
 ):
     """Background task to process single invoice upload"""
     try:
-        await task_store.update_task(task_id, status="processing", progress=20)
+        await task_store.update_task(task_id, status="processing", progress=10)
+        
+        # Save file (moved to background to avoid blocking the response)
+        os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+        file_id = uuid.uuid4().hex[:8]
+        file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}_{file_name}")
+        
+        with open(file_path, "wb") as f:
+            f.write(file_content)
+        
+        # Update invoice with file path
+        await invoices_collection.update_one(
+            {"id": invoice_id},
+            {"$set": {"file_path": file_path}}
+        )
+        
+        await task_store.update_task(task_id, progress=20)
         
         # Parse invoice with VLM
         parsed_data = await parse_invoice(file_path, file_ext, country)
@@ -165,20 +182,12 @@ async def upload_invoice(
             detail=f"File type not allowed. Supported: {', '.join(ALLOWED_EXTENSIONS)}"
         )
     
-    # Read file content
+    # Read file content quickly
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=400, detail="File size exceeds 25MB limit")
     
-    # Save file
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    file_id = uuid.uuid4().hex[:8]
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}_{file.filename}")
-    
-    with open(file_path, "wb") as f:
-        f.write(content)
-    
-    # Create invoice record
+    # Create IDs and minimal invoice record (fast operations only)
     invoice_id = str(uuid.uuid4())
     task_id = str(uuid.uuid4())
     
@@ -187,7 +196,7 @@ async def upload_invoice(
         "organization_id": organization_id,
         "file_name": file.filename,
         "file_type": file_ext,
-        "file_path": file_path,
+        "file_path": None,  # Will be set by background task
         "status": "processing",
         "extracted_data": None,
         "country": country,
@@ -203,10 +212,10 @@ async def upload_invoice(
         metadata={"invoice_id": invoice_id, "organization_id": organization_id, "file_name": file.filename}
     )
     
-    # Start background processing
+    # Start background processing (file saving moved here to avoid blocking)
     background_tasks.add_task(
         process_single_upload_task,
-        task_id, invoice_id, file_path, file_ext, country, organization_id
+        task_id, invoice_id, content, file.filename, file_ext, country, organization_id
     )
     
     return SingleUploadTaskResponse(
