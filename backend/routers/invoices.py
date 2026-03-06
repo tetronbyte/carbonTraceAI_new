@@ -1,6 +1,6 @@
 import os
 import uuid
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends, BackgroundTasks
 from datetime import datetime, timezone
 from database import invoices_collection, emission_records_collection
 from schemas import InvoiceResponse, EmissionRecordResponse
@@ -9,6 +9,7 @@ from services.invoice_parser import parse_invoice, parse_multiple_invoices
 from config import settings
 from typing import List, Optional
 from pydantic import BaseModel
+from task_status import task_store
 
 router = APIRouter(prefix="/invoices", tags=["Invoice Parser"])
 
@@ -28,6 +29,13 @@ class BatchUploadResponse(BaseModel):
     invoices: List[dict]
     emission_records: List[dict]
     failed_files: List[str]
+
+class BatchUploadTaskResponse(BaseModel):
+    task_id: str
+    batch_id: str
+    status: str
+    message: str
+    total_files: int
 
 @router.post("/upload", response_model=dict)
 async def upload_invoice(
@@ -219,8 +227,129 @@ async def upload_invoice(
         )
         raise HTTPException(status_code=500, detail=f"Error parsing invoice: {str(e)}")
 
-@router.post("/batch-upload", response_model=BatchUploadResponse)
+# Background task for batch processing
+async def process_batch_upload_task(
+    task_id: str,
+    batch_id: str,
+    files_data: List[dict],
+    saved_invoices: List[dict],
+    organization_id: str,
+    country: str,
+    quarter: Optional[str],
+    year: Optional[str]
+):
+    """Background task to process batch upload"""
+    try:
+        task_store.update_task(task_id, status="processing", progress=10)
+        
+        # Parse all invoices
+        batch_results = await parse_multiple_invoices(files_data, country)
+        task_store.update_task(task_id, progress=60)
+        
+        # Process results and create emission records
+        all_emission_records = []
+        processed_invoices = []
+        
+        for i, result in enumerate(batch_results.get("individual_results", [])):
+            if i >= len(saved_invoices):
+                break
+                
+            invoice = saved_invoices[i]
+            invoice_id = invoice["id"]
+            
+            # Create emission records for this invoice
+            for emission_data in result.get("emissions_data", []):
+                record_id = str(uuid.uuid4())
+                record = {
+                    "id": record_id,
+                    "organization_id": organization_id,
+                    "invoice_id": invoice_id,
+                    "batch_id": batch_id,
+                    "energy_type": emission_data.get("energy_type", "electricity"),
+                    "quantity": emission_data.get("quantity", 0),
+                    "unit": emission_data.get("unit", "units"),
+                    "scope_type": emission_data.get("scope_type", "Scope2"),
+                    "co2_emissions_kg": emission_data.get("co2_emissions_kg", 0),
+                    "description": emission_data.get("description", ""),
+                    "category": emission_data.get("category", ""),
+                    "cost": emission_data.get("cost", 0),
+                    "invoice_date": result.get("invoice_date"),
+                    "billing_period_start": result.get("billing_period_start"),
+                    "billing_period_end": result.get("billing_period_end"),
+                    "vendor_name": result.get("vendor_name"),
+                    "location": result.get("location"),
+                    "source_file": result.get("file_name"),
+                    "quarter": quarter,
+                    "year": year,
+                    "is_verified": False,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                }
+                await emission_records_collection.insert_one(record)
+                all_emission_records.append(record)
+            
+            # Update invoice status
+            status = "completed" if not result.get("parse_error") else "partial" if result.get("emissions_data") else "failed"
+            extracted_data = {
+                "vendor_name": result.get("vendor_name"),
+                "invoice_number": result.get("invoice_number"),
+                "invoice_date": result.get("invoice_date"),
+                "billing_period": result.get("billing_period"),
+                "location": result.get("location"),
+                "total_amount": result.get("total_amount"),
+                "currency": result.get("currency"),
+                "total_emissions": result.get("total_emissions"),
+                "document_type": result.get("document_type"),
+                "notes": result.get("notes"),
+                "parse_error": result.get("parse_error", False)
+            }
+            
+            await invoices_collection.update_one(
+                {"id": invoice_id},
+                {"$set": {"status": status, "extracted_data": extracted_data}}
+            )
+            
+            processed_invoices.append({
+                "id": invoice_id,
+                "file_name": invoice["file_name"],
+                "status": status,
+                "total_emissions": result.get("total_emissions", 0),
+                "vendor_name": result.get("vendor_name"),
+                "document_type": result.get("document_type")
+            })
+        
+        task_store.update_task(task_id, progress=90)
+        
+        aggregate = batch_results.get("aggregate", {})
+        
+        result_data = {
+            "batch_id": batch_id,
+            "total_files": len(files_data),
+            "successful": aggregate.get("successful_parses", 0),
+            "failed": aggregate.get("failed_parses", 0),
+            "total_emissions": aggregate.get("total_emissions", 0),
+            "scope1_emissions": aggregate.get("scope1_emissions", 0),
+            "scope2_emissions": aggregate.get("scope2_emissions", 0),
+            "scope3_emissions": aggregate.get("scope3_emissions", 0),
+            "invoices": processed_invoices,
+            "emission_records": [{
+                "id": r["id"],
+                "energy_type": r["energy_type"],
+                "quantity": r["quantity"],
+                "unit": r["unit"],
+                "scope_type": r["scope_type"],
+                "co2_emissions_kg": r["co2_emissions_kg"]
+            } for r in all_emission_records],
+            "failed_files": []
+        }
+        
+        task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        
+    except Exception as e:
+        task_store.update_task(task_id, status="failed", error=str(e))
+
+@router.post("/batch-upload", response_model=BatchUploadTaskResponse)
 async def batch_upload_invoices(
+    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     organization_id: str = Form(...),
     country: Optional[str] = Form("default"),
@@ -229,10 +358,10 @@ async def batch_upload_invoices(
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Upload and parse multiple invoices in a batch.
-    Ideal for quarterly CBAM reporting - upload all invoices from a quarter at once.
+    Upload and parse multiple invoices in a batch (async).
+    Returns immediately with task_id. Use /batch-upload/status/{task_id} to check progress.
     
-    Returns aggregated emissions data across all invoices.
+    Ideal for quarterly CBAM reporting - upload all invoices from a quarter at once.
     """
     if len(files) > MAX_BATCH_FILES:
         raise HTTPException(
@@ -241,6 +370,7 @@ async def batch_upload_invoices(
         )
     
     batch_id = str(uuid.uuid4())
+    task_id = str(uuid.uuid4())
     files_data = []
     saved_invoices = []
     
@@ -290,103 +420,37 @@ async def batch_upload_invoices(
     if not files_data:
         raise HTTPException(status_code=400, detail="No valid files to process")
     
-    # Parse all invoices
-    batch_results = await parse_multiple_invoices(files_data, country)
-    
-    # Process results and create emission records
-    all_emission_records = []
-    processed_invoices = []
-    
-    for i, result in enumerate(batch_results.get("individual_results", [])):
-        if i >= len(saved_invoices):
-            break
-            
-        invoice = saved_invoices[i]
-        invoice_id = invoice["id"]
-        
-        # Create emission records for this invoice
-        for emission_data in result.get("emissions_data", []):
-            record_id = str(uuid.uuid4())
-            record = {
-                "id": record_id,
-                "organization_id": organization_id,
-                "invoice_id": invoice_id,
-                "batch_id": batch_id,
-                "energy_type": emission_data.get("energy_type", "electricity"),
-                "quantity": emission_data.get("quantity", 0),
-                "unit": emission_data.get("unit", "units"),
-                "scope_type": emission_data.get("scope_type", "Scope2"),
-                "co2_emissions_kg": emission_data.get("co2_emissions_kg", 0),
-                "description": emission_data.get("description", ""),
-                "category": emission_data.get("category", ""),
-                "cost": emission_data.get("cost", 0),
-                "invoice_date": result.get("invoice_date"),
-                "billing_period_start": result.get("billing_period_start"),
-                "billing_period_end": result.get("billing_period_end"),
-                "vendor_name": result.get("vendor_name"),
-                "location": result.get("location"),
-                "source_file": result.get("file_name"),
-                "quarter": quarter,
-                "year": year,
-                "is_verified": False,
-                "created_at": datetime.now(timezone.utc).isoformat()
-            }
-            await emission_records_collection.insert_one(record)
-            all_emission_records.append(record)
-        
-        # Update invoice status
-        status = "completed" if not result.get("parse_error") else "partial" if result.get("emissions_data") else "failed"
-        extracted_data = {
-            "vendor_name": result.get("vendor_name"),
-            "invoice_number": result.get("invoice_number"),
-            "invoice_date": result.get("invoice_date"),
-            "billing_period": result.get("billing_period"),
-            "location": result.get("location"),
-            "total_amount": result.get("total_amount"),
-            "currency": result.get("currency"),
-            "total_emissions": result.get("total_emissions"),
-            "document_type": result.get("document_type"),
-            "notes": result.get("notes"),
-            "parse_error": result.get("parse_error", False)
-        }
-        
-        await invoices_collection.update_one(
-            {"id": invoice_id},
-            {"$set": {"status": status, "extracted_data": extracted_data}}
-        )
-        
-        processed_invoices.append({
-            "id": invoice_id,
-            "file_name": invoice["file_name"],
-            "status": status,
-            "total_emissions": result.get("total_emissions", 0),
-            "vendor_name": result.get("vendor_name"),
-            "document_type": result.get("document_type")
-        })
-    
-    aggregate = batch_results.get("aggregate", {})
-    
-    return BatchUploadResponse(
-        batch_id=batch_id,
-        total_files=len(files),
-        successful=aggregate.get("successful_parses", 0),
-        failed=aggregate.get("failed_parses", 0),
-        total_emissions=aggregate.get("total_emissions", 0),
-        scope1_emissions=aggregate.get("scope1_emissions", 0),
-        scope2_emissions=aggregate.get("scope2_emissions", 0),
-        scope3_emissions=aggregate.get("scope3_emissions", 0),
-        invoices=processed_invoices,
-        emission_records=[{
-            "id": r["id"],
-            "energy_type": r["energy_type"],
-            "quantity": r["quantity"],
-            "unit": r["unit"],
-            "scope_type": r["scope_type"],
-            "co2_emissions_kg": r["co2_emissions_kg"],
-            "source_file": r.get("source_file", "")
-        } for r in all_emission_records],
-        failed_files=aggregate.get("failed_files", [])
+    # Create task
+    task_store.create_task(
+        task_id=task_id,
+        task_type="batch_upload",
+        metadata={"batch_id": batch_id, "organization_id": organization_id, "total_files": len(files_data)}
     )
+    
+    # Start background processing
+    background_tasks.add_task(
+        process_batch_upload_task,
+        task_id, batch_id, files_data, saved_invoices, organization_id, country, quarter, year
+    )
+    
+    return BatchUploadTaskResponse(
+        task_id=task_id,
+        batch_id=batch_id,
+        status="queued",
+        message=f"Batch upload started. {len(files_data)} files queued for processing.",
+        total_files=len(files_data)
+    )
+
+@router.get("/batch-upload/status/{task_id}")
+async def get_batch_upload_status(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get status of batch upload task"""
+    task = task_store.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
 
 @router.get("/batch/{batch_id}")
 async def get_batch_invoices(

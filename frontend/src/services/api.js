@@ -49,9 +49,12 @@ export const api = {
     if (year) formData.append('year', year);
     return axios.post(`${API}/invoices/batch-upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
-      timeout: 1800000  // 30 minutes for batch processing (20 files × 90 sec worst case)
+      timeout: 10000  // 10 seconds - returns immediately with task_id
     });
   },
+  
+  getBatchUploadStatus: (taskId) =>
+    axios.get(`${API}/invoices/batch-upload/status/${taskId}`, { headers: getAuthHeader() }),
   
   getBatchInvoices: (batchId) =>
     axios.get(`${API}/invoices/batch/${batchId}`, { headers: getAuthHeader() }),
