@@ -116,9 +116,9 @@ export function InvoicesPage() {
     setUploadProgress(10);
     
     // Show estimated time
-    const estimatedMinutes = Math.ceil((batchFiles.length * 30) / 60);
-    toast.info(`Processing ${batchFiles.length} files with AI... Estimated time: ${estimatedMinutes}-${estimatedMinutes + 2} minutes. Please wait!`, {
-      duration: 5000
+    const estimatedMinutes = Math.ceil((batchFiles.length * 45) / 60);
+    toast.info(`Processing ${batchFiles.length} files with AI... Estimated time: ${estimatedMinutes}-${estimatedMinutes + 3} minutes. Please stay on this page and wait!`, {
+      duration: 8000
     });
 
     try {
