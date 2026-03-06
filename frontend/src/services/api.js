@@ -94,8 +94,11 @@ export const api = {
   generateReport: (data) => 
     axios.post(`${API}/reports/generate`, data, { 
       headers: getAuthHeader(),
-      timeout: 1800000  // 30 minutes for AI report generation with multiple AI calls
+      timeout: 10000  // 10 seconds - returns immediately with task_id
     }),
+  
+  getReportGenerationStatus: (taskId) =>
+    axios.get(`${API}/reports/status/${taskId}`, { headers: getAuthHeader() }),
   
   generateCBAMReport: (data) =>
     axios.post(`${API}/reports/cbam`, data, { 

@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from fastapi.responses import FileResponse, HTMLResponse
 from datetime import datetime, timezone
 from database import emission_records_collection, reports_collection
@@ -8,6 +8,7 @@ from services.auth_service import get_current_user
 from services.report_service import create_esg_report, FRAMEWORKS
 from typing import List, Optional
 from pydantic import BaseModel
+from task_status import task_store
 
 router = APIRouter(prefix="/reports", tags=["ESG Reports"])
 
@@ -25,18 +26,93 @@ class CBAMReportRequest(BaseModel):
     report_period: str
     products: List[ProductEmission]
 
+class ReportGenerateTaskResponse(BaseModel):
+    task_id: str
+    report_id: str
+    status: str
+    message: str
+
 @router.get("/frameworks")
 async def get_frameworks(current_user: dict = Depends(get_current_user)):
     """Get available ESG reporting frameworks"""
     return FRAMEWORKS
 
-@router.post("/generate", response_model=ESGReportResponse)
+# Background task for report generation
+async def process_report_generation_task(
+    task_id: str,
+    report_id: str,
+    organization_id: str,
+    org_name: str,
+    report_period: str,
+    compliance_standard: str,
+    report_type: str,
+    quarter: Optional[str],
+    scope1: float,
+    scope2: float,
+    scope3: float
+):
+    """Background task to generate ESG report"""
+    try:
+        await task_store.update_task(task_id, status="processing", progress=10)
+        
+        # Generate report content with AI narratives (core feature)
+        report_result = create_esg_report(
+            org_name=org_name,
+            report_period=report_period,
+            framework=compliance_standard,
+            scope1=scope1,
+            scope2=scope2,
+            scope3=scope3,
+            report_type=report_type,
+            quarter=quarter,
+            use_ai=True  # AI-generated professional narratives
+        )
+        
+        await task_store.update_task(task_id, progress=80)
+        
+        # Update report
+        await reports_collection.update_one(
+            {"id": report_id},
+            {"$set": {
+                "pdf_path": report_result["pdf_path"],
+                "html_content": report_result["html_content"],
+                "total_emissions": report_result["total_emissions"],
+                "scope1_emissions": report_result["scope1_emissions"],
+                "scope2_emissions": report_result["scope2_emissions"],
+                "scope3_emissions": report_result["scope3_emissions"],
+                "status": "completed"
+            }}
+        )
+        
+        result_data = {
+            "report_id": report_id,
+            "pdf_path": report_result["pdf_path"],
+            "total_emissions": report_result["total_emissions"],
+            "scope1_emissions": report_result["scope1_emissions"],
+            "scope2_emissions": report_result["scope2_emissions"],
+            "scope3_emissions": report_result["scope3_emissions"],
+            "status": "completed"
+        }
+        
+        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        
+    except Exception as e:
+        await reports_collection.update_one(
+            {"id": report_id},
+            {"$set": {"status": "failed"}}
+        )
+        await task_store.update_task(task_id, status="failed", error=str(e))
+
+@router.post("/generate", response_model=ReportGenerateTaskResponse)
 async def generate_report(
+    background_tasks: BackgroundTasks,
     request: ESGReportGenerateRequest,
     current_user: dict = Depends(get_current_user)
 ):
     """
-    Generate an ESG report with AI-powered narrative generation.
+    Generate an ESG report with AI-powered narrative generation (async).
+    Returns immediately with task_id. Use /reports/status/{task_id} to check progress.
+    
     Supports ISSB, TCFD, GRI, and CBAM frameworks.
     """
     # Build query for emission records
@@ -66,6 +142,8 @@ async def generate_report(
     
     # Create report record
     report_id = str(uuid.uuid4())
+    task_id = str(uuid.uuid4())
+    
     report = {
         "id": report_id,
         "organization_id": request.organization_id,
@@ -87,49 +165,38 @@ async def generate_report(
     
     await reports_collection.insert_one(report)
     
-    try:
-        # Generate report content with AI narratives (core feature)
-        report_result = create_esg_report(
-            org_name=request.org_name,
-            report_period=request.report_period,
-            framework=request.compliance_standard,
-            scope1=scope1,
-            scope2=scope2,
-            scope3=scope3,
-            report_type=request.report_type or "Annual",
-            quarter=request.quarter,
-            use_ai=True  # AI-generated professional narratives
-        )
-        
-        # Update report
-        await reports_collection.update_one(
-            {"id": report_id},
-            {"$set": {
-                "pdf_path": report_result["pdf_path"],
-                "html_content": report_result["html_content"],
-                "total_emissions": report_result["total_emissions"],
-                "scope1_emissions": report_result["scope1_emissions"],
-                "scope2_emissions": report_result["scope2_emissions"],
-                "scope3_emissions": report_result["scope3_emissions"],
-                "status": "completed"
-            }}
-        )
-        
-        report["pdf_path"] = report_result["pdf_path"]
-        report["total_emissions"] = report_result["total_emissions"]
-        report["scope1_emissions"] = report_result["scope1_emissions"]
-        report["scope2_emissions"] = report_result["scope2_emissions"]
-        report["scope3_emissions"] = report_result["scope3_emissions"]
-        report["status"] = "completed"
-        
-        return report
-        
-    except Exception as e:
-        await reports_collection.update_one(
-            {"id": report_id},
-            {"$set": {"status": "failed"}}
-        )
-        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
+    # Create task
+    await task_store.create_task(
+        task_id=task_id,
+        task_type="report_generation",
+        metadata={"report_id": report_id, "organization_id": request.organization_id, "framework": request.compliance_standard}
+    )
+    
+    # Start background processing
+    background_tasks.add_task(
+        process_report_generation_task,
+        task_id, report_id, request.organization_id, request.org_name,
+        request.report_period, request.compliance_standard, request.report_type or "Annual",
+        request.quarter, scope1, scope2, scope3
+    )
+    
+    return ReportGenerateTaskResponse(
+        task_id=task_id,
+        report_id=report_id,
+        status="queued",
+        message=f"Report generation started for {request.compliance_standard} framework."
+    )
+
+@router.get("/status/{task_id}")
+async def get_report_generation_status(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get status of report generation task"""
+    task = await task_store.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
 
 @router.post("/cbam", response_model=ESGReportResponse)
 async def generate_cbam_report(

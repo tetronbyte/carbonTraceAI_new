@@ -82,13 +82,13 @@ export function ReportsPage() {
 
     setGenerating(true);
     
-    // Show processing message with estimated time
-    toast.info(`AI is generating your ${formData.complianceStandard} report... This typically takes 2-5 minutes. Please stay on this page!`, {
-      duration: 10000,
+    toast.info(`Starting ${formData.complianceStandard} report generation...`, {
+      duration: 3000,
       id: 'report-generation'
     });
     
     try {
+      // Initiate async report generation - returns immediately with task_id
       const response = await api.generateReport({
         organization_id: organization.id,
         org_name: formData.orgName,
@@ -98,19 +98,60 @@ export function ReportsPage() {
         quarter: formData.reportType === 'Quarterly' ? formData.quarter : null,
       });
       
-      toast.dismiss('report-generation');
-      toast.success(`${formData.complianceStandard} report generated successfully!`);
-      setPreviewReport(response.data);
+      const { task_id, report_id } = response.data;
+      
+      toast.info(`AI is generating your ${formData.complianceStandard} report in background...`, {
+        duration: 5000,
+        id: 'report-generation'
+      });
+      
+      // Poll task status
+      let attempts = 0;
+      const maxAttempts = 100; // 100 × 3 sec = 5 minutes
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
+        
+        const statusResponse = await api.getReportGenerationStatus(task_id);
+        const taskStatus = statusResponse.data;
+        
+        if (taskStatus.status === 'completed') {
+          toast.dismiss('report-generation');
+          toast.success(`${formData.complianceStandard} report generated successfully!`);
+          
+          // Fetch the completed report
+          const reportResponse = await api.getReport(report_id);
+          setPreviewReport(reportResponse.data);
+          fetchReports();
+          break;
+        } else if (taskStatus.status === 'failed') {
+          toast.dismiss('report-generation');
+          toast.error(`Report generation failed: ${taskStatus.error || 'Unknown error'}`);
+          break;
+        } else if (taskStatus.status === 'processing') {
+          // Show progress update every 10 attempts (30 seconds)
+          if (attempts > 0 && attempts % 10 === 0) {
+            const elapsed = Math.floor(attempts * 3 / 60);
+            toast.info(`AI generating report... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`, {
+              duration: 5000,
+              id: 'report-generation'
+            });
+          }
+        }
+        
+        attempts++;
+      }
+      
+      if (attempts >= maxAttempts) {
+        toast.dismiss('report-generation');
+        toast.warning('Report generation is taking longer than expected. Check Report History shortly.');
+      }
+      
       fetchReports();
     } catch (error) {
       toast.dismiss('report-generation');
       const errorMsg = error.response?.data?.detail || error.message || 'Unknown error';
-      
-      if (error.code === 'ECONNABORTED' || errorMsg.includes('timeout')) {
-        toast.warning('Report generation is taking longer than expected. Please check Report History - it may complete shortly.');
-      } else {
-        toast.error(`Failed to generate report: ${errorMsg}`);
-      }
+      toast.error(`Failed to generate report: ${errorMsg}`);
     } finally {
       setGenerating(false);
     }

@@ -1,15 +1,22 @@
-# Simple in-memory task status tracking
-# For production, use Redis or database
-
+# Simple task status tracking with MongoDB persistence
 from typing import Dict, Any
 from datetime import datetime, timezone
+from database import get_database
 
 class TaskStore:
     def __init__(self):
-        self.tasks: Dict[str, Dict[str, Any]] = {}
+        self.db = None
+        self.tasks_collection = None
     
-    def create_task(self, task_id: str, task_type: str, metadata: Dict[str, Any] = None):
-        self.tasks[task_id] = {
+    async def _ensure_db(self):
+        """Ensure database connection is initialized"""
+        if self.db is None:
+            self.db = await get_database()
+            self.tasks_collection = self.db.tasks
+    
+    async def create_task(self, task_id: str, task_type: str, metadata: Dict[str, Any] = None):
+        await self._ensure_db()
+        task = {
             "task_id": task_id,
             "task_type": task_type,
             "status": "queued",
@@ -20,31 +27,40 @@ class TaskStore:
             "updated_at": datetime.now(timezone.utc).isoformat(),
             "metadata": metadata or {}
         }
-        return self.tasks[task_id]
+        await self.tasks_collection.insert_one(task)
+        return task
     
-    def update_task(self, task_id: str, status: str = None, progress: int = None, 
+    async def update_task(self, task_id: str, status: str = None, progress: int = None, 
                     result: Any = None, error: str = None):
-        if task_id not in self.tasks:
-            return None
+        await self._ensure_db()
+        
+        update_fields = {"updated_at": datetime.now(timezone.utc).isoformat()}
         
         if status:
-            self.tasks[task_id]["status"] = status
+            update_fields["status"] = status
         if progress is not None:
-            self.tasks[task_id]["progress"] = progress
+            update_fields["progress"] = progress
         if result is not None:
-            self.tasks[task_id]["result"] = result
+            update_fields["result"] = result
         if error is not None:
-            self.tasks[task_id]["error"] = error
+            update_fields["error"] = error
         
-        self.tasks[task_id]["updated_at"] = datetime.now(timezone.utc).isoformat()
-        return self.tasks[task_id]
+        await self.tasks_collection.update_one(
+            {"task_id": task_id},
+            {"$set": update_fields}
+        )
+        
+        return await self.get_task(task_id)
     
-    def get_task(self, task_id: str):
-        return self.tasks.get(task_id)
+    async def get_task(self, task_id: str):
+        await self._ensure_db()
+        task = await self.tasks_collection.find_one({"task_id": task_id}, {"_id": 0})
+        return task
     
-    def delete_task(self, task_id: str):
-        if task_id in self.tasks:
-            del self.tasks[task_id]
+    async def delete_task(self, task_id: str):
+        await self._ensure_db()
+        await self.tasks_collection.delete_one({"task_id": task_id})
 
 # Global task store
 task_store = TaskStore()
+

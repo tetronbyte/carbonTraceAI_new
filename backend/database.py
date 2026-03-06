@@ -13,6 +13,10 @@ blockchain_ledger_collection = db.blockchain_ledger
 greenwashing_collection = db.greenwashing_analyses
 estimations_collection = db.carbon_estimations
 reports_collection = db.esg_reports
+tasks_collection = db.tasks
 
 async def get_db():
+    return db
+
+async def get_database():
     return db

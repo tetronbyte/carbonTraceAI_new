@@ -240,11 +240,11 @@ async def process_batch_upload_task(
 ):
     """Background task to process batch upload"""
     try:
-        task_store.update_task(task_id, status="processing", progress=10)
+        await task_store.update_task(task_id, status="processing", progress=10)
         
         # Parse all invoices
         batch_results = await parse_multiple_invoices(files_data, country)
-        task_store.update_task(task_id, progress=60)
+        await task_store.update_task(task_id, progress=60)
         
         # Process results and create emission records
         all_emission_records = []
@@ -317,7 +317,7 @@ async def process_batch_upload_task(
                 "document_type": result.get("document_type")
             })
         
-        task_store.update_task(task_id, progress=90)
+        await task_store.update_task(task_id, progress=90)
         
         aggregate = batch_results.get("aggregate", {})
         
@@ -342,10 +342,10 @@ async def process_batch_upload_task(
             "failed_files": []
         }
         
-        task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
         
     except Exception as e:
-        task_store.update_task(task_id, status="failed", error=str(e))
+        await task_store.update_task(task_id, status="failed", error=str(e))
 
 @router.post("/batch-upload", response_model=BatchUploadTaskResponse)
 async def batch_upload_invoices(
@@ -421,7 +421,7 @@ async def batch_upload_invoices(
         raise HTTPException(status_code=400, detail="No valid files to process")
     
     # Create task
-    task_store.create_task(
+    await task_store.create_task(
         task_id=task_id,
         task_type="batch_upload",
         metadata={"batch_id": batch_id, "organization_id": organization_id, "total_files": len(files_data)}
@@ -447,7 +447,7 @@ async def get_batch_upload_status(
     current_user: dict = Depends(get_current_user)
 ):
     """Get status of batch upload task"""
-    task = task_store.get_task(task_id)
+    task = await task_store.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
