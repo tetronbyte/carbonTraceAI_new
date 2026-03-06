@@ -195,7 +195,7 @@ export function InvoicesPage() {
       
       // Poll task status
       let attempts = 0;
-      const maxAttempts = 150; // 150 × 3 sec = 7.5 minutes (enough for large batches)
+      const maxAttempts = 200; // 200 × 3 sec = 10 minutes (enough for large batches with AI)
       
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds

@@ -107,7 +107,7 @@ export function ReportsPage() {
       
       // Poll task status
       let attempts = 0;
-      const maxAttempts = 120; // 120 × 3 sec = 6 minutes (enough for reports)
+      const maxAttempts = 180; // 180 × 3 sec = 9 minutes (enough for complex reports with multiple AI calls)
       
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
