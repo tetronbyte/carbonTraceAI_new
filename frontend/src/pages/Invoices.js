@@ -87,10 +87,10 @@ export function InvoicesPage() {
     setBatchResult(null);
 
     try {
-      // Upload the file - returns immediately with task_id
+      // Upload the file - returns immediately with job_id
       toast.info('Starting invoice upload...', { duration: 2000 });
       const response = await api.uploadInvoice(file, organization.id, selectedCountry);
-      const { task_id, invoice_id } = response.data;
+      const { job_id, invoice_id } = response.data;
       
       toast.info(`AI is analyzing your invoice in background...`, {
         duration: 5000,
@@ -104,13 +104,13 @@ export function InvoicesPage() {
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
-        const statusResponse = await api.getUploadStatus(task_id);
-        const taskStatus = statusResponse.data;
+        const statusResponse = await api.getUploadStatus(job_id);
+        const jobStatus = statusResponse.data;
         
         // Log for debugging
-        console.log(`Upload attempt ${attempts}: status=${taskStatus.status}, progress=${taskStatus.progress}`);
+        console.log(`Upload attempt ${attempts}: status=${jobStatus.status}, progress=${jobStatus.progress}`);
         
-        if (taskStatus.status === 'completed') {
+        if (jobStatus.status === 'completed') {
           toast.dismiss('ai-processing');
           
           // Fetch the completed invoice
@@ -124,17 +124,17 @@ export function InvoicesPage() {
             toast.success('Invoice parsed successfully by AI!');
           }
           break;
-        } else if (taskStatus.status === 'failed') {
+        } else if (jobStatus.status === 'failed') {
           toast.dismiss('ai-processing');
-          toast.error(`Failed to parse invoice: ${taskStatus.error || 'Unknown error'}`);
+          toast.error(`Failed to parse invoice: ${jobStatus.error || 'Unknown error'}`);
           break;
-        } else if (taskStatus.status === 'processing' || taskStatus.status === 'queued') {
+        } else if (jobStatus.status === 'processing' || jobStatus.status === 'queued') {
           // Show progress update every 10 attempts (30 seconds)
           if (attempts > 0 && attempts % 10 === 0) {
             const elapsed = Math.floor(attempts * 3 / 60);
-            const progressMsg = taskStatus.status === 'queued' 
+            const progressMsg = jobStatus.status === 'queued' 
               ? `Waiting to start... (${elapsed} min elapsed)`
-              : `AI processing... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`;
+              : `AI processing... ${jobStatus.progress || 0}% complete (${elapsed} min elapsed)`;
             toast.info(progressMsg, {
               duration: 5000,
               id: 'ai-processing'
@@ -176,7 +176,7 @@ export function InvoicesPage() {
     });
 
     try {
-      // Initiate async batch upload - returns immediately with task_id
+      // Initiate async batch upload - returns immediately with job_id
       const response = await api.batchUploadInvoices(
         batchFiles,
         organization.id,
@@ -185,7 +185,7 @@ export function InvoicesPage() {
         selectedYear || null
       );
       
-      const { task_id, batch_id } = response.data;
+      const { job_id, batch_id } = response.data;
       setUploadProgress(20);
       
       toast.info(`AI is processing ${batchFiles.length} files in background...`, {
@@ -200,17 +200,17 @@ export function InvoicesPage() {
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
-        const statusResponse = await api.getBatchUploadStatus(task_id);
-        const taskStatus = statusResponse.data;
+        const statusResponse = await api.getBatchUploadStatus(job_id);
+        const jobStatus = statusResponse.data;
         
         // Log for debugging
-        console.log(`Batch attempt ${attempts}: status=${taskStatus.status}, progress=${taskStatus.progress}`);
+        console.log(`Batch attempt ${attempts}: status=${jobStatus.status}, progress=${jobStatus.progress}`);
         
-        setUploadProgress(20 + (taskStatus.progress || 0) * 0.7);
+        setUploadProgress(20 + (jobStatus.progress || 0) * 0.7);
         
-        if (taskStatus.status === 'completed') {
+        if (jobStatus.status === 'completed') {
           toast.dismiss('batch-upload');
-          const result = taskStatus.result;
+          const result = jobStatus.result;
           
           setUploadProgress(100);
           setBatchResult(result);
@@ -224,17 +224,17 @@ export function InvoicesPage() {
             toast.success(`Success! All ${result.successful} invoices processed!`);
           }
           break;
-        } else if (taskStatus.status === 'failed') {
+        } else if (jobStatus.status === 'failed') {
           toast.dismiss('batch-upload');
-          toast.error(`Batch processing failed: ${taskStatus.error || 'Unknown error'}`);
+          toast.error(`Batch processing failed: ${jobStatus.error || 'Unknown error'}`);
           break;
-        } else if (taskStatus.status === 'processing' || taskStatus.status === 'queued') {
+        } else if (jobStatus.status === 'processing' || jobStatus.status === 'queued') {
           // Show progress update every 10 attempts (30 seconds)
           if (attempts > 0 && attempts % 10 === 0) {
             const elapsed = Math.floor(attempts * 3 / 60);
-            const progressMsg = taskStatus.status === 'queued'
+            const progressMsg = jobStatus.status === 'queued'
               ? `Waiting to start batch processing... (${elapsed} min elapsed)`
-              : `AI Processing batch... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`;
+              : `AI Processing batch... ${jobStatus.progress || 0}% complete (${elapsed} min elapsed)`;
             toast.info(progressMsg, {
               duration: 5000,
               id: 'batch-upload'

@@ -36,12 +36,12 @@ export const api = {
     formData.append('country', country);
     return axios.post(`${API}/invoices/upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
-      timeout: 10000  // 10 seconds - returns immediately with task_id
+      timeout: 10000  // 10 seconds - returns immediately with job_id
     });
   },
   
-  getUploadStatus: (taskId) =>
-    axios.get(`${API}/invoices/upload/status/${taskId}`, { headers: getAuthHeader() }),
+  getUploadStatus: (jobId) =>
+    axios.get(`${API}/invoices/upload/status/${jobId}`, { headers: getAuthHeader() }),
   
   batchUploadInvoices: (files, organizationId, country = 'default', quarter = null, year = null) => {
     const formData = new FormData();
@@ -52,12 +52,12 @@ export const api = {
     if (year) formData.append('year', year);
     return axios.post(`${API}/invoices/batch-upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
-      timeout: 10000  // 10 seconds - returns immediately with task_id
+      timeout: 10000  // 10 seconds - returns immediately with job_id
     });
   },
   
-  getBatchUploadStatus: (taskId) =>
-    axios.get(`${API}/invoices/batch-upload/status/${taskId}`, { headers: getAuthHeader() }),
+  getBatchUploadStatus: (jobId) =>
+    axios.get(`${API}/invoices/batch-upload/status/${jobId}`, { headers: getAuthHeader() }),
   
   getBatchInvoices: (batchId) =>
     axios.get(`${API}/invoices/batch/${batchId}`, { headers: getAuthHeader() }),
@@ -97,11 +97,11 @@ export const api = {
   generateReport: (data) => 
     axios.post(`${API}/reports/generate`, data, { 
       headers: getAuthHeader(),
-      timeout: 10000  // 10 seconds - returns immediately with task_id
+      timeout: 10000  // 10 seconds - returns immediately with job_id
     }),
   
-  getReportGenerationStatus: (taskId) =>
-    axios.get(`${API}/reports/status/${taskId}`, { headers: getAuthHeader() }),
+  getReportGenerationStatus: (jobId) =>
+    axios.get(`${API}/reports/status/${jobId}`, { headers: getAuthHeader() }),
   
   generateCBAMReport: (data) =>
     axios.post(`${API}/reports/cbam`, data, { 

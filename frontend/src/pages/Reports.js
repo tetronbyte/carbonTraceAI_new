@@ -88,7 +88,7 @@ export function ReportsPage() {
     });
     
     try {
-      // Initiate async report generation - returns immediately with task_id
+      // Initiate async report generation - returns immediately with job_id
       const response = await api.generateReport({
         organization_id: organization.id,
         org_name: formData.orgName,
@@ -98,7 +98,7 @@ export function ReportsPage() {
         quarter: formData.reportType === 'Quarterly' ? formData.quarter : null,
       });
       
-      const { task_id, report_id } = response.data;
+      const { job_id, report_id } = response.data;
       
       toast.info(`AI is generating your ${formData.complianceStandard} report in background...`, {
         duration: 5000,
@@ -112,13 +112,13 @@ export function ReportsPage() {
       while (attempts < maxAttempts) {
         await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
-        const statusResponse = await api.getReportGenerationStatus(task_id);
-        const taskStatus = statusResponse.data;
+        const statusResponse = await api.getReportGenerationStatus(job_id);
+        const jobStatus = statusResponse.data;
         
         // Log for debugging
-        console.log(`Report attempt ${attempts}: status=${taskStatus.status}, progress=${taskStatus.progress}`);
+        console.log(`Report attempt ${attempts}: status=${jobStatus.status}, progress=${jobStatus.progress}`);
         
-        if (taskStatus.status === 'completed') {
+        if (jobStatus.status === 'completed') {
           toast.dismiss('report-generation');
           toast.success(`${formData.complianceStandard} report generated successfully!`);
           
@@ -127,17 +127,17 @@ export function ReportsPage() {
           setPreviewReport(reportResponse.data);
           fetchReports();
           break;
-        } else if (taskStatus.status === 'failed') {
+        } else if (jobStatus.status === 'failed') {
           toast.dismiss('report-generation');
-          toast.error(`Report generation failed: ${taskStatus.error || 'Unknown error'}`);
+          toast.error(`Report generation failed: ${jobStatus.error || 'Unknown error'}`);
           break;
-        } else if (taskStatus.status === 'processing' || taskStatus.status === 'queued') {
+        } else if (jobStatus.status === 'processing' || jobStatus.status === 'queued') {
           // Show progress update every 10 attempts (30 seconds)
           if (attempts > 0 && attempts % 10 === 0) {
             const elapsed = Math.floor(attempts * 3 / 60);
-            const progressMsg = taskStatus.status === 'queued'
+            const progressMsg = jobStatus.status === 'queued'
               ? `Waiting to start report generation... (${elapsed} min elapsed)`
-              : `AI generating report... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`;
+              : `AI generating report... ${jobStatus.progress || 0}% complete (${elapsed} min elapsed)`;
             toast.info(progressMsg, {
               duration: 5000,
               id: 'report-generation'

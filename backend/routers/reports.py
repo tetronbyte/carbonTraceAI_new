@@ -8,7 +8,7 @@ from services.auth_service import get_current_user
 from services.report_service import create_esg_report, FRAMEWORKS
 from typing import List, Optional
 from pydantic import BaseModel
-from task_status import task_store
+from task_status import job_store
 
 router = APIRouter(prefix="/reports", tags=["ESG Reports"])
 
@@ -27,7 +27,7 @@ class CBAMReportRequest(BaseModel):
     products: List[ProductEmission]
 
 class ReportGenerateTaskResponse(BaseModel):
-    task_id: str
+    job_id: str
     report_id: str
     status: str
     message: str
@@ -39,7 +39,7 @@ async def get_frameworks(current_user: dict = Depends(get_current_user)):
 
 # Background task for report generation
 async def process_report_generation_task(
-    task_id: str,
+    job_id: str,
     report_id: str,
     organization_id: str,
     org_name: str,
@@ -53,7 +53,7 @@ async def process_report_generation_task(
 ):
     """Background task to generate ESG report"""
     try:
-        await task_store.update_task(task_id, status="processing", progress=10)
+        await job_store.update_job(job_id, status="processing", progress=10)
         
         # Generate report content with AI narratives (core feature)
         report_result = create_esg_report(
@@ -68,7 +68,7 @@ async def process_report_generation_task(
             use_ai=True  # AI-generated professional narratives
         )
         
-        await task_store.update_task(task_id, progress=80)
+        await job_store.update_job(job_id, progress=80)
         
         # Update report
         await reports_collection.update_one(
@@ -94,14 +94,14 @@ async def process_report_generation_task(
             "status": "completed"
         }
         
-        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        await job_store.update_job(job_id, status="completed", progress=100, result=result_data)
         
     except Exception as e:
         await reports_collection.update_one(
             {"id": report_id},
             {"$set": {"status": "failed"}}
         )
-        await task_store.update_task(task_id, status="failed", error=str(e))
+        await job_store.update_job(job_id, status="failed", error=str(e))
 
 @router.post("/generate", response_model=ReportGenerateTaskResponse)
 async def generate_report(
@@ -111,7 +111,7 @@ async def generate_report(
 ):
     """
     Generate an ESG report with AI-powered narrative generation (async).
-    Returns immediately with task_id. Use /reports/status/{task_id} to check progress.
+    Returns immediately with job_id. Use /reports/status/{job_id} to check progress.
     
     Supports ISSB, TCFD, GRI, and CBAM frameworks.
     """
@@ -142,7 +142,7 @@ async def generate_report(
     
     # Create report record
     report_id = str(uuid.uuid4())
-    task_id = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
     
     report = {
         "id": report_id,
@@ -166,8 +166,8 @@ async def generate_report(
     await reports_collection.insert_one(report)
     
     # Create task
-    await task_store.create_task(
-        task_id=task_id,
+    await job_store.create_job(
+        job_id=job_id,
         task_type="report_generation",
         metadata={"report_id": report_id, "organization_id": request.organization_id, "framework": request.compliance_standard}
     )
@@ -175,25 +175,25 @@ async def generate_report(
     # Start background processing
     background_tasks.add_task(
         process_report_generation_task,
-        task_id, report_id, request.organization_id, request.org_name,
+        job_id, report_id, request.organization_id, request.org_name,
         request.report_period, request.compliance_standard, request.report_type or "Annual",
         request.quarter, scope1, scope2, scope3
     )
     
     return ReportGenerateTaskResponse(
-        task_id=task_id,
+        job_id=job_id,
         report_id=report_id,
         status="queued",
         message=f"Report generation started for {request.compliance_standard} framework."
     )
 
-@router.get("/status/{task_id}")
+@router.get("/status/{job_id}")
 async def get_report_generation_status(
-    task_id: str,
+    job_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Get status of report generation task"""
-    task = await task_store.get_task(task_id)
+    task = await job_store.get_job(job_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task

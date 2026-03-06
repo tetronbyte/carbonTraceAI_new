@@ -9,7 +9,7 @@ from services.invoice_parser import parse_invoice, parse_multiple_invoices
 from config import settings
 from typing import List, Optional
 from pydantic import BaseModel
-from task_status import task_store
+from task_status import job_store
 
 router = APIRouter(prefix="/invoices", tags=["Invoice Parser"])
 
@@ -31,21 +31,21 @@ class BatchUploadResponse(BaseModel):
     failed_files: List[str]
 
 class BatchUploadTaskResponse(BaseModel):
-    task_id: str
+    job_id: str
     batch_id: str
     status: str
     message: str
     total_files: int
 
 class SingleUploadTaskResponse(BaseModel):
-    task_id: str
+    job_id: str
     invoice_id: str
     status: str
     message: str
 
 # Background task for single invoice processing
 async def process_single_upload_task(
-    task_id: str,
+    job_id: str,
     invoice_id: str,
     file_content: bytes,
     file_name: str,
@@ -55,7 +55,7 @@ async def process_single_upload_task(
 ):
     """Background task to process single invoice upload"""
     try:
-        await task_store.update_task(task_id, status="processing", progress=10)
+        await job_store.update_job(job_id, status="processing", progress=10)
         
         # Save file (moved to background to avoid blocking the response)
         os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
@@ -71,12 +71,12 @@ async def process_single_upload_task(
             {"$set": {"file_path": file_path}}
         )
         
-        await task_store.update_task(task_id, progress=20)
+        await job_store.update_job(job_id, progress=20)
         
         # Parse invoice with VLM
         parsed_data = await parse_invoice(file_path, file_ext, country)
         
-        await task_store.update_task(task_id, progress=60)
+        await job_store.update_job(job_id, progress=60)
         
         # Create emission records
         emission_records = []
@@ -109,7 +109,7 @@ async def process_single_upload_task(
             await emission_records_collection.insert_one(record)
             emission_records.append(record)
         
-        await task_store.update_task(task_id, progress=80)
+        await job_store.update_job(job_id, progress=80)
         
         # Build extracted data
         extracted_data = {
@@ -151,14 +151,14 @@ async def process_single_upload_task(
             } for r in emission_records]
         }
         
-        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        await job_store.update_job(job_id, status="completed", progress=100, result=result_data)
         
     except Exception as e:
         await invoices_collection.update_one(
             {"id": invoice_id},
             {"$set": {"status": "failed", "extracted_data": {"error": str(e), "parse_error": True}}}
         )
-        await task_store.update_task(task_id, status="failed", error=str(e))
+        await job_store.update_job(job_id, status="failed", error=str(e))
 
 @router.post("/upload", response_model=SingleUploadTaskResponse)
 async def upload_invoice(
@@ -170,7 +170,7 @@ async def upload_invoice(
 ):
     """
     Upload and parse a single invoice using AI Vision Language Model (async).
-    Returns immediately with task_id. Use /upload/status/{task_id} to check progress.
+    Returns immediately with job_id. Use /upload/status/{job_id} to check progress.
     
     Supported formats: JPG, PNG, WEBP, PDF, TXT
     """
@@ -189,7 +189,7 @@ async def upload_invoice(
     
     # Create IDs and minimal invoice record (fast operations only)
     invoice_id = str(uuid.uuid4())
-    task_id = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
     
     invoice = {
         "id": invoice_id,
@@ -206,8 +206,8 @@ async def upload_invoice(
     await invoices_collection.insert_one(invoice)
     
     # Create task
-    await task_store.create_task(
-        task_id=task_id,
+    await job_store.create_job(
+        job_id=job_id,
         task_type="single_upload",
         metadata={"invoice_id": invoice_id, "organization_id": organization_id, "file_name": file.filename}
     )
@@ -215,23 +215,23 @@ async def upload_invoice(
     # Start background processing (file saving moved here to avoid blocking)
     background_tasks.add_task(
         process_single_upload_task,
-        task_id, invoice_id, content, file.filename, file_ext, country, organization_id
+        job_id, invoice_id, content, file.filename, file_ext, country, organization_id
     )
     
     return SingleUploadTaskResponse(
-        task_id=task_id,
+        job_id=job_id,
         invoice_id=invoice_id,
         status="queued",
         message=f"Invoice upload started for {file.filename}"
     )
 
-@router.get("/upload/status/{task_id}")
+@router.get("/upload/status/{job_id}")
 async def get_upload_status(
-    task_id: str,
+    job_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Get status of single upload task"""
-    task = await task_store.get_task(task_id)
+    task = await job_store.get_job(job_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
@@ -239,7 +239,7 @@ async def get_upload_status(
 
 # Background task for batch processing
 async def process_batch_upload_task(
-    task_id: str,
+    job_id: str,
     batch_id: str,
     files_data: List[dict],
     saved_invoices: List[dict],
@@ -250,11 +250,11 @@ async def process_batch_upload_task(
 ):
     """Background task to process batch upload"""
     try:
-        await task_store.update_task(task_id, status="processing", progress=10)
+        await job_store.update_job(job_id, status="processing", progress=10)
         
         # Parse all invoices
         batch_results = await parse_multiple_invoices(files_data, country)
-        await task_store.update_task(task_id, progress=60)
+        await job_store.update_job(job_id, progress=60)
         
         # Process results and create emission records
         all_emission_records = []
@@ -327,7 +327,7 @@ async def process_batch_upload_task(
                 "document_type": result.get("document_type")
             })
         
-        await task_store.update_task(task_id, progress=90)
+        await job_store.update_job(job_id, progress=90)
         
         aggregate = batch_results.get("aggregate", {})
         
@@ -352,10 +352,10 @@ async def process_batch_upload_task(
             "failed_files": []
         }
         
-        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
+        await job_store.update_job(job_id, status="completed", progress=100, result=result_data)
         
     except Exception as e:
-        await task_store.update_task(task_id, status="failed", error=str(e))
+        await job_store.update_job(job_id, status="failed", error=str(e))
 
 @router.post("/batch-upload", response_model=BatchUploadTaskResponse)
 async def batch_upload_invoices(
@@ -369,7 +369,7 @@ async def batch_upload_invoices(
 ):
     """
     Upload and parse multiple invoices in a batch (async).
-    Returns immediately with task_id. Use /batch-upload/status/{task_id} to check progress.
+    Returns immediately with job_id. Use /batch-upload/status/{job_id} to check progress.
     
     Ideal for quarterly CBAM reporting - upload all invoices from a quarter at once.
     """
@@ -380,7 +380,7 @@ async def batch_upload_invoices(
         )
     
     batch_id = str(uuid.uuid4())
-    task_id = str(uuid.uuid4())
+    job_id = str(uuid.uuid4())
     files_data = []
     saved_invoices = []
     
@@ -431,8 +431,8 @@ async def batch_upload_invoices(
         raise HTTPException(status_code=400, detail="No valid files to process")
     
     # Create task
-    await task_store.create_task(
-        task_id=task_id,
+    await job_store.create_job(
+        job_id=job_id,
         task_type="batch_upload",
         metadata={"batch_id": batch_id, "organization_id": organization_id, "total_files": len(files_data)}
     )
@@ -440,24 +440,24 @@ async def batch_upload_invoices(
     # Start background processing
     background_tasks.add_task(
         process_batch_upload_task,
-        task_id, batch_id, files_data, saved_invoices, organization_id, country, quarter, year
+        job_id, batch_id, files_data, saved_invoices, organization_id, country, quarter, year
     )
     
     return BatchUploadTaskResponse(
-        task_id=task_id,
+        job_id=job_id,
         batch_id=batch_id,
         status="queued",
         message=f"Batch upload started. {len(files_data)} files queued for processing.",
         total_files=len(files_data)
     )
 
-@router.get("/batch-upload/status/{task_id}")
+@router.get("/batch-upload/status/{job_id}")
 async def get_batch_upload_status(
-    task_id: str,
+    job_id: str,
     current_user: dict = Depends(get_current_user)
 ):
     """Get status of batch upload task"""
-    task = await task_store.get_task(task_id)
+    task = await job_store.get_job(job_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
