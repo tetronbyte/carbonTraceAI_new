@@ -34,8 +34,8 @@ export function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center animate-pulse-green">
-              <Leaf className="w-6 h-6 text-primary" />
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center">
+              <img src="/logo.png" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-bold font-['Outfit']">CarbonTraceAI</h1>
@@ -157,8 +157,8 @@ export function RegisterPage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center animate-pulse-green">
-              <Leaf className="w-6 h-6 text-primary" />
+            <div className="w-16 h-16 rounded-xl flex items-center justify-center">
+              <img src="/logo.png" alt="CarbonTraceAI Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <h1 className="text-2xl font-bold font-['Outfit']">CarbonTraceAI</h1>
