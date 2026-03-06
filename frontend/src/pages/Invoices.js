@@ -114,6 +114,12 @@ export function InvoicesPage() {
     setParseResult(null);
     setBatchResult(null);
     setUploadProgress(10);
+    
+    // Show estimated time
+    const estimatedMinutes = Math.ceil((batchFiles.length * 30) / 60);
+    toast.info(`Processing ${batchFiles.length} files with AI... Estimated time: ${estimatedMinutes}-${estimatedMinutes + 2} minutes. Please wait!`, {
+      duration: 5000
+    });
 
     try {
       setUploadProgress(30);
@@ -136,7 +142,7 @@ export function InvoicesPage() {
       
       fetchInvoices();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Error processing batch');
+      toast.error(error.response?.data?.detail || 'Error processing batch. The request may have timed out - check your invoices list to see if any were processed.');
     } finally {
       setUploading(false);
       setUploadProgress(0);

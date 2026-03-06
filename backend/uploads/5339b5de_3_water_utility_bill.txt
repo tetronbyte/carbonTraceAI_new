@@ -1,0 +1,18 @@
+NAIROBI WATER AND SEWERAGE COMPANY
+Water Bill
+
+Account Number: WTR-882211
+Customer: EastAfrica Steel Components Ltd
+Property: Industrial Park, Nairobi
+
+Billing Period: February 1–28, 2025
+Bill Date: March 5, 2025
+
+Previous Reading: 4,320 m3
+Current Reading: 4,565 m3
+Consumption: 245 m3
+
+Water Supply (245 m3 @ KES 53.00/m3): KES 12,985.00
+Sewerage Charges: KES 6,492.50
+
+Total Amount Due: KES 22,680.90

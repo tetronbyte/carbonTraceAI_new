@@ -35,7 +35,8 @@ export const api = {
     formData.append('organization_id', organizationId);
     formData.append('country', country);
     return axios.post(`${API}/invoices/upload`, formData, {
-      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
+      timeout: 300000  // 5 minutes for single invoice AI processing
     });
   },
   
@@ -47,7 +48,8 @@ export const api = {
     if (quarter) formData.append('quarter', quarter);
     if (year) formData.append('year', year);
     return axios.post(`${API}/invoices/batch-upload`, formData, {
-      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
+      timeout: 900000  // 15 minutes for batch processing (20 files × 30-45 sec each)
     });
   },
   
@@ -89,13 +91,13 @@ export const api = {
   generateReport: (data) => 
     axios.post(`${API}/reports/generate`, data, { 
       headers: getAuthHeader(),
-      timeout: 120000  // 2 minutes for AI generation
+      timeout: 300000  // 5 minutes for AI report generation
     }),
   
   generateCBAMReport: (data) =>
     axios.post(`${API}/reports/cbam`, data, { 
       headers: getAuthHeader(),
-      timeout: 120000  // 2 minutes for AI generation
+      timeout: 300000  // 5 minutes for AI report generation
     }),
   
   getReports: (orgId) => 
