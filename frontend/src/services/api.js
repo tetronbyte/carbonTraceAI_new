@@ -91,13 +91,13 @@ export const api = {
   generateReport: (data) => 
     axios.post(`${API}/reports/generate`, data, { 
       headers: getAuthHeader(),
-      timeout: 600000  // 10 minutes for AI report generation
+      timeout: 1800000  // 30 minutes for AI report generation with multiple AI calls
     }),
   
   generateCBAMReport: (data) =>
     axios.post(`${API}/reports/cbam`, data, { 
       headers: getAuthHeader(),
-      timeout: 600000  // 10 minutes for AI report generation
+      timeout: 1800000  // 30 minutes for AI report generation
     }),
   
   getReports: (orgId) => 

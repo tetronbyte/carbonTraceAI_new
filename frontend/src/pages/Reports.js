@@ -81,6 +81,12 @@ export function ReportsPage() {
     }
 
     setGenerating(true);
+    
+    // Show processing message with estimated time
+    toast.info(`Generating ${formData.complianceStandard} report with AI... This may take 2-5 minutes. Please stay on this page!`, {
+      duration: 8000
+    });
+    
     try {
       const response = await api.generateReport({
         organization_id: organization.id,
@@ -95,7 +101,7 @@ export function ReportsPage() {
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to generate report');
+      toast.error(error.response?.data?.detail || 'Failed to generate report. If the request timed out, check Report History - it may have completed anyway.');
     } finally {
       setGenerating(false);
     }
@@ -114,6 +120,12 @@ export function ReportsPage() {
     }
 
     setGenerating(true);
+    
+    // Show processing message with estimated time
+    toast.info(`Generating CBAM report with AI... This may take 2-4 minutes. Please stay on this page!`, {
+      duration: 8000
+    });
+    
     try {
       const response = await api.generateCBAMReport({
         organization_id: organization.id,
@@ -126,7 +138,7 @@ export function ReportsPage() {
       setPreviewReport(response.data);
       fetchReports();
     } catch (error) {
-      toast.error(error.response?.data?.detail || 'Failed to generate CBAM report');
+      toast.error(error.response?.data?.detail || 'Failed to generate CBAM report. If the request timed out, check Report History - it may have completed anyway.');
     } finally {
       setGenerating(false);
     }
