@@ -87,47 +87,32 @@ export function InvoicesPage() {
     setBatchResult(null);
 
     try {
-      // Upload the file
-      toast.info('Uploading invoice...', { duration: 2000 });
+      // Upload the file - returns immediately with task_id
+      toast.info('Starting invoice upload...', { duration: 2000 });
       const response = await api.uploadInvoice(file, organization.id, selectedCountry);
-      const invoiceId = response.data.id;
+      const { task_id, invoice_id } = response.data;
       
-      // Show AI processing message
-      const fileType = ext.toUpperCase();
-      const estimatedTime = ['png', 'jpg', 'jpeg', 'pdf'].includes(ext) ? '1-2 minutes' : '30-60 seconds';
-      toast.info(`AI is analyzing your ${fileType} invoice... This will take approximately ${estimatedTime}. Please wait!`, {
-        duration: 10000,
+      toast.info(`AI is analyzing your invoice in background...`, {
+        duration: 5000,
         id: 'ai-processing'
       });
       
-      // Poll for completion
+      // Poll task status
       let attempts = 0;
-      const maxAttempts = 120; // 120 × 2 sec = 4 minutes max
-      let invoice = null;
+      const maxAttempts = 100; // 100 × 3 sec = 5 minutes
       
       while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3 seconds
         
-        // Fetch updated invoice status
-        const invoicesResponse = await api.getInvoices(organization.id);
-        invoice = invoicesResponse.data.find(inv => inv.id === invoiceId);
+        const statusResponse = await api.getUploadStatus(task_id);
+        const taskStatus = statusResponse.data;
         
-        if (!invoice) {
-          toast.error('Invoice not found. Please refresh the page.');
-          break;
-        }
-        
-        // Show progress every 30 seconds
-        if (attempts > 0 && attempts % 15 === 0) {
-          const elapsed = Math.floor(attempts * 2 / 60);
-          toast.info(`Still processing... (${elapsed} min elapsed)`, {
-            duration: 3000,
-            id: 'ai-processing'
-          });
-        }
-        
-        if (invoice.status === 'completed') {
+        if (taskStatus.status === 'completed') {
           toast.dismiss('ai-processing');
+          
+          // Fetch the completed invoice
+          const invoiceResponse = await api.getInvoice(invoice_id);
+          const invoice = invoiceResponse.data;
           setParseResult(invoice);
           
           if (invoice.extracted_data?.parse_error) {
@@ -136,23 +121,27 @@ export function InvoicesPage() {
             toast.success('Invoice parsed successfully by AI!');
           }
           break;
-        } else if (invoice.status === 'failed') {
+        } else if (taskStatus.status === 'failed') {
           toast.dismiss('ai-processing');
-          toast.error(`Failed to parse invoice: ${invoice.notes || 'Unknown error'}`);
+          toast.error(`Failed to parse invoice: ${taskStatus.error || 'Unknown error'}`);
           break;
-        } else if (invoice.status === 'partial') {
-          toast.dismiss('ai-processing');
-          toast.warning(`Partial parsing: ${invoice.notes || 'Some data could not be extracted'}`);
-          setParseResult(invoice);
-          break;
+        } else if (taskStatus.status === 'processing') {
+          // Show progress update every 10 attempts (30 seconds)
+          if (attempts > 0 && attempts % 10 === 0) {
+            const elapsed = Math.floor(attempts * 3 / 60);
+            toast.info(`AI processing... ${taskStatus.progress || 0}% complete (${elapsed} min elapsed)`, {
+              duration: 5000,
+              id: 'ai-processing'
+            });
+          }
         }
         
         attempts++;
       }
       
-      if (attempts >= maxAttempts && invoice?.status === 'processing') {
+      if (attempts >= maxAttempts) {
         toast.dismiss('ai-processing');
-        toast.warning('Processing is taking longer than expected. Please check the invoice list in a moment.');
+        toast.warning('Processing is taking longer than expected. Check the invoice list shortly.');
       }
       
       fetchInvoices();

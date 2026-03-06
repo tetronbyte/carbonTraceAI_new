@@ -36,9 +36,12 @@ export const api = {
     formData.append('country', country);
     return axios.post(`${API}/invoices/upload`, formData, {
       headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' },
-      timeout: 600000  // 10 minutes for single invoice AI processing
+      timeout: 10000  // 10 seconds - returns immediately with task_id
     });
   },
+  
+  getUploadStatus: (taskId) =>
+    axios.get(`${API}/invoices/upload/status/${taskId}`, { headers: getAuthHeader() }),
   
   batchUploadInvoices: (files, organizationId, country = 'default', quarter = null, year = null) => {
     const formData = new FormData();

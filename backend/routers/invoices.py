@@ -37,59 +37,29 @@ class BatchUploadTaskResponse(BaseModel):
     message: str
     total_files: int
 
-@router.post("/upload", response_model=dict)
-async def upload_invoice(
-    file: UploadFile = File(...),
-    organization_id: str = Form(...),
-    country: Optional[str] = Form("default"),
-    current_user: dict = Depends(get_current_user)
+class SingleUploadTaskResponse(BaseModel):
+    task_id: str
+    invoice_id: str
+    status: str
+    message: str
+
+# Background task for single invoice processing
+async def process_single_upload_task(
+    task_id: str,
+    invoice_id: str,
+    file_path: str,
+    file_ext: str,
+    country: str,
+    organization_id: str
 ):
-    """
-    Upload and parse a single invoice using AI Vision Language Model.
-    Extracts comprehensive energy consumption data and calculates carbon emissions.
-    
-    Supported formats: JPG, PNG, WEBP, PDF, TXT
-    """
-    # Validate file extension
-    file_ext = file.filename.split(".")[-1].lower()
-    if file_ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"File type not allowed. Supported: {', '.join(ALLOWED_EXTENSIONS)}"
-        )
-    
-    # Read file content
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE:
-        raise HTTPException(status_code=400, detail="File size exceeds 25MB limit")
-    
-    # Save file
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-    file_id = uuid.uuid4().hex[:8]
-    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}_{file.filename}")
-    
-    with open(file_path, "wb") as f:
-        f.write(content)
-    
-    # Create invoice record
-    invoice_id = str(uuid.uuid4())
-    invoice = {
-        "id": invoice_id,
-        "organization_id": organization_id,
-        "file_name": file.filename,
-        "file_type": file_ext,
-        "file_path": file_path,
-        "status": "processing",
-        "extracted_data": None,
-        "country": country,
-        "batch_id": None,
-        "uploaded_at": datetime.now(timezone.utc).isoformat()
-    }
-    await invoices_collection.insert_one(invoice)
-    
+    """Background task to process single invoice upload"""
     try:
+        await task_store.update_task(task_id, status="processing", progress=20)
+        
         # Parse invoice with VLM
         parsed_data = await parse_invoice(file_path, file_ext, country)
+        
+        await task_store.update_task(task_id, progress=60)
         
         # Create emission records
         emission_records = []
@@ -122,58 +92,24 @@ async def upload_invoice(
             await emission_records_collection.insert_one(record)
             emission_records.append(record)
         
-        # Build comprehensive extracted data
+        await task_store.update_task(task_id, progress=80)
+        
+        # Build extracted data
         extracted_data = {
-            # Basic info
             "vendor_name": parsed_data.get("vendor_name"),
-            "vendor_address": parsed_data.get("vendor_address"),
-            "vendor_contact": parsed_data.get("vendor_contact"),
             "invoice_number": parsed_data.get("invoice_number"),
             "invoice_date": parsed_data.get("invoice_date"),
-            "due_date": parsed_data.get("due_date"),
-            
-            # Customer info
-            "customer_name": parsed_data.get("customer_name"),
-            "customer_account_number": parsed_data.get("customer_account_number"),
-            
-            # Location
-            "location": parsed_data.get("location"),
-            "facility_name": parsed_data.get("facility_name"),
-            
-            # Billing period
             "billing_period_start": parsed_data.get("billing_period_start"),
             "billing_period_end": parsed_data.get("billing_period_end"),
-            "billing_period": parsed_data.get("billing_period"),
-            
-            # Meter/readings
-            "meter_number": parsed_data.get("meter_number"),
-            "previous_reading": parsed_data.get("previous_reading"),
-            "current_reading": parsed_data.get("current_reading"),
-            
-            # Financial
             "total_amount": parsed_data.get("total_amount"),
             "currency": parsed_data.get("currency"),
-            "taxes": parsed_data.get("taxes"),
-            
-            # Utility-specific
+            "location": parsed_data.get("location"),
+            "facility_name": parsed_data.get("facility_name"),
+            "meter_number": parsed_data.get("meter_number"),
             "tariff_type": parsed_data.get("tariff_type"),
-            "peak_usage": parsed_data.get("peak_usage"),
-            "off_peak_usage": parsed_data.get("off_peak_usage"),
-            "power_factor": parsed_data.get("power_factor"),
-            "maximum_demand": parsed_data.get("maximum_demand"),
-            
-            # Carbon info
-            "carbon_content": parsed_data.get("carbon_content"),
-            "renewable_percentage": parsed_data.get("renewable_percentage"),
-            
-            # Document type
-            "document_type": parsed_data.get("document_type"),
-            
-            # Emissions
             "total_emissions": parsed_data.get("total_emissions"),
             "emission_country_used": parsed_data.get("emission_country_used"),
-            
-            # Notes
+            "document_type": parsed_data.get("document_type"),
             "notes": parsed_data.get("notes"),
             "parse_error": parsed_data.get("parse_error", False)
         }
@@ -185,47 +121,112 @@ async def upload_invoice(
             {"$set": {"status": status, "extracted_data": extracted_data}}
         )
         
-        invoice["status"] = status
-        invoice["extracted_data"] = extracted_data
-        
-        return {
-            "invoice": {
-                "id": invoice_id,
-                "organization_id": organization_id,
-                "file_name": file.filename,
-                "file_type": file_ext,
-                "status": status,
-                "extracted_data": extracted_data,
-                "uploaded_at": invoice["uploaded_at"]
-            },
+        result_data = {
+            "invoice_id": invoice_id,
+            "status": status,
+            "extracted_data": extracted_data,
             "emission_records": [{
                 "id": r["id"],
-                "organization_id": r["organization_id"],
-                "invoice_id": r["invoice_id"],
                 "energy_type": r["energy_type"],
                 "quantity": r["quantity"],
-                "unit": r["unit"],
-                "scope_type": r["scope_type"],
                 "co2_emissions_kg": r["co2_emissions_kg"],
-                "description": r.get("description", ""),
-                "category": r.get("category", ""),
-                "invoice_date": r["invoice_date"],
-                "billing_period_start": r.get("billing_period_start"),
-                "billing_period_end": r.get("billing_period_end"),
-                "vendor_name": r["vendor_name"],
-                "cost": r.get("cost", 0),
-                "is_verified": r["is_verified"],
-                "created_at": r["created_at"]
-            } for r in emission_records],
-            "extracted_data": extracted_data
+                "scope_type": r["scope_type"]
+            } for r in emission_records]
         }
+        
+        await task_store.update_task(task_id, status="completed", progress=100, result=result_data)
         
     except Exception as e:
         await invoices_collection.update_one(
             {"id": invoice_id},
             {"$set": {"status": "failed", "extracted_data": {"error": str(e), "parse_error": True}}}
         )
-        raise HTTPException(status_code=500, detail=f"Error parsing invoice: {str(e)}")
+        await task_store.update_task(task_id, status="failed", error=str(e))
+
+@router.post("/upload", response_model=SingleUploadTaskResponse)
+async def upload_invoice(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    organization_id: str = Form(...),
+    country: Optional[str] = Form("default"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Upload and parse a single invoice using AI Vision Language Model (async).
+    Returns immediately with task_id. Use /upload/status/{task_id} to check progress.
+    
+    Supported formats: JPG, PNG, WEBP, PDF, TXT
+    """
+    # Validate file extension
+    file_ext = file.filename.split(".")[-1].lower()
+    if file_ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File type not allowed. Supported: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Read file content
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File size exceeds 25MB limit")
+    
+    # Save file
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    file_id = uuid.uuid4().hex[:8]
+    file_path = os.path.join(settings.UPLOAD_DIR, f"{file_id}_{file.filename}")
+    
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
+    # Create invoice record
+    invoice_id = str(uuid.uuid4())
+    task_id = str(uuid.uuid4())
+    
+    invoice = {
+        "id": invoice_id,
+        "organization_id": organization_id,
+        "file_name": file.filename,
+        "file_type": file_ext,
+        "file_path": file_path,
+        "status": "processing",
+        "extracted_data": None,
+        "country": country,
+        "batch_id": None,
+        "uploaded_at": datetime.now(timezone.utc).isoformat()
+    }
+    await invoices_collection.insert_one(invoice)
+    
+    # Create task
+    await task_store.create_task(
+        task_id=task_id,
+        task_type="single_upload",
+        metadata={"invoice_id": invoice_id, "organization_id": organization_id, "file_name": file.filename}
+    )
+    
+    # Start background processing
+    background_tasks.add_task(
+        process_single_upload_task,
+        task_id, invoice_id, file_path, file_ext, country, organization_id
+    )
+    
+    return SingleUploadTaskResponse(
+        task_id=task_id,
+        invoice_id=invoice_id,
+        status="queued",
+        message=f"Invoice upload started for {file.filename}"
+    )
+
+@router.get("/upload/status/{task_id}")
+async def get_upload_status(
+    task_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get status of single upload task"""
+    task = await task_store.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
 
 # Background task for batch processing
 async def process_batch_upload_task(
