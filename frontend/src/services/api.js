@@ -87,10 +87,16 @@ export const api = {
     axios.get(`${API}/reports/frameworks`, { headers: getAuthHeader() }),
   
   generateReport: (data) => 
-    axios.post(`${API}/reports/generate`, data, { headers: getAuthHeader() }),
+    axios.post(`${API}/reports/generate`, data, { 
+      headers: getAuthHeader(),
+      timeout: 120000  // 2 minutes for AI generation
+    }),
   
   generateCBAMReport: (data) =>
-    axios.post(`${API}/reports/cbam`, data, { headers: getAuthHeader() }),
+    axios.post(`${API}/reports/cbam`, data, { 
+      headers: getAuthHeader(),
+      timeout: 120000  // 2 minutes for AI generation
+    }),
   
   getReports: (orgId) => 
     axios.get(`${API}/reports?organization_id=${orgId}`, { headers: getAuthHeader() }),
