@@ -87,13 +87,48 @@ export function InvoicesPage() {
     setBatchResult(null);
 
     try {
+      // Upload the file
       const response = await api.uploadInvoice(file, organization.id, selectedCountry);
-      setParseResult(response.data);
+      const invoiceId = response.data.id;
       
-      if (response.data.extracted_data?.parse_error) {
-        toast.warning('Invoice parsed with some issues. Please review the data.');
-      } else {
-        toast.success('Invoice parsed successfully with AI!');
+      // Show processing message
+      toast.info('AI is analyzing your invoice... Please wait (this may take 30-60 seconds)', {
+        duration: 5000
+      });
+      
+      // Poll for completion
+      let attempts = 0;
+      const maxAttempts = 60; // 60 attempts × 2 seconds = 2 minutes max
+      let invoice = null;
+      
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        
+        // Fetch updated invoice status
+        const invoicesResponse = await api.getInvoices(organization.id);
+        invoice = invoicesResponse.data.find(inv => inv.id === invoiceId);
+        
+        if (!invoice) break;
+        
+        if (invoice.status === 'completed') {
+          setParseResult(invoice);
+          
+          if (invoice.extracted_data?.parse_error) {
+            toast.warning('Invoice parsed with some issues. Please review the data.');
+          } else {
+            toast.success('Invoice parsed successfully with AI!');
+          }
+          break;
+        } else if (invoice.status === 'failed' || invoice.status === 'partial') {
+          toast.error(invoice.notes || 'Failed to parse invoice');
+          break;
+        }
+        
+        attempts++;
+      }
+      
+      if (attempts >= maxAttempts && invoice?.status === 'processing') {
+        toast.warning('Invoice is still processing. Please check back in a moment.');
       }
       
       fetchInvoices();
@@ -130,14 +165,67 @@ export function InvoicesPage() {
         selectedQuarter === 'none' ? null : selectedQuarter || null,
         selectedYear || null
       );
-      setUploadProgress(100);
-      setBatchResult(response.data);
-      setBatchFiles([]);
       
-      if (response.data.failed > 0) {
-        toast.warning(`Processed ${response.data.successful} of ${response.data.total_files} files`);
-      } else {
-        toast.success(`Successfully processed ${response.data.successful} invoices!`);
+      const batchId = response.data.batch_id;
+      
+      // Poll for completion of all files in batch
+      let attempts = 0;
+      const maxAttempts = 90; // 90 attempts × 2 seconds = 3 minutes max per check, 30 min total timeout
+      let allCompleted = false;
+      
+      toast.info('AI is processing your batch... Checking progress every few seconds', {
+        duration: 5000
+      });
+      
+      while (attempts < maxAttempts && !allCompleted) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        
+        // Fetch invoices and check batch status
+        const invoicesResponse = await api.getInvoices(organization.id);
+        const batchInvoices = invoicesResponse.data.filter(inv => inv.batch_id === batchId);
+        
+        const completed = batchInvoices.filter(inv => inv.status === 'completed').length;
+        const failed = batchInvoices.filter(inv => inv.status === 'failed' || inv.status === 'partial').length;
+        const processing = batchInvoices.filter(inv => inv.status === 'processing').length;
+        
+        setUploadProgress(30 + (completed / batchFiles.length) * 70);
+        
+        if (processing === 0) {
+          // All done (either completed or failed)
+          allCompleted = true;
+          
+          const finalResult = {
+            total_files: batchInvoices.length,
+            successful: completed,
+            failed: failed,
+            batch_id: batchId,
+            individual_results: batchInvoices
+          };
+          
+          setUploadProgress(100);
+          setBatchResult(finalResult);
+          setBatchFiles([]);
+          
+          if (failed > 0) {
+            toast.warning(`Processed ${completed} of ${batchInvoices.length} files. ${failed} failed.`);
+          } else {
+            toast.success(`Successfully processed ${completed} invoices!`);
+          }
+          break;
+        }
+        
+        attempts++;
+        
+        // Show progress update every 10 attempts (20 seconds)
+        if (attempts % 10 === 0) {
+          toast.info(`Progress: ${completed}/${batchFiles.length} completed, ${processing} still processing...`, {
+            duration: 3000
+          });
+        }
+      }
+      
+      if (attempts >= maxAttempts && !allCompleted) {
+        toast.warning('Some files are still processing. Please check the invoice list in a moment.');
       }
       
       fetchInvoices();
