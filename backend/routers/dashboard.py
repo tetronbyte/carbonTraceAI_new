@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 from database import organizations_collection, invoices_collection, emission_records_collection, reports_collection
 from schemas import DashboardResponse, DashboardStats, EmissionsByScope, EmissionTimeline, InvoiceResponse, ESGReportResponse
 from services.auth_service import get_current_user
+from services.job_tracker import job_tracker
 from typing import List
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -98,3 +99,22 @@ async def get_dashboard(
         recent_invoices=invoices,
         recent_reports=reports
     )
+
+
+@router.get("/jobs/statistics")
+async def get_job_statistics(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get job execution statistics.
+    Returns overall job stats for the current user.
+    """
+    try:
+        stats = await job_tracker.get_job_statistics()
+        return {
+            "statistics": stats,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+

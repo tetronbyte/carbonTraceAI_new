@@ -1,6 +1,6 @@
 """API endpoints for ERP integration."""
 import uuid
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from ..schemas.api_schemas import (
     ERPConnectionRequest,
@@ -16,12 +16,21 @@ from ..services.database import db_service
 from ..workers.extraction_worker import enqueue_extraction
 from task_status import job_store
 from services.auth_service import get_current_user
+from services.rate_limiter import (
+    limiter,
+    erp_connection_rate_limit,
+    erp_extraction_rate_limit,
+    health_check_rate_limit,
+    general_rate_limit
+)
 
 router = APIRouter(prefix="/api/erp", tags=["ERP Integration"])
 
 
 @router.post("/connections/{tenant_id}", response_model=ERPConnectionResponse)
+@limiter.limit("20/minute")
 async def connect_erp(
+    request: Request,
     tenant_id: str,
     payload: ERPConnectionRequest,
     current_user: dict = Depends(get_current_user)
@@ -98,7 +107,9 @@ async def get_erp_connections(
 
 
 @router.post("/extract/{tenant_id}", response_model=ExtractionResponse)
+@limiter.limit("5/minute")
 async def trigger_extraction(
+    request: Request,
     tenant_id: str,
     payload: ExtractionRequest,
     current_user: dict = Depends(get_current_user)
@@ -228,3 +239,79 @@ async def disconnect_erp(
     await db_service.deactivate_erp_config(tenant_id, erp_type)
     
     return {"status": "disconnected", "erp_type": erp_type}
+
+
+
+
+@router.get("/health/{tenant_id}")
+@limiter.limit("30/minute")
+async def check_tenant_health(
+    request: Request,
+    tenant_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Check health of all ERP connectors for a tenant.
+    
+    Returns status of each configured ERP connection.
+    """
+    from ..services.health_check import health_check_service
+    
+    try:
+        results = await health_check_service.check_tenant_connectors(tenant_id)
+        
+        # Calculate overall health
+        healthy_count = sum(1 for r in results if r["status"] == "healthy")
+        total_count = len(results)
+        
+        return {
+            "tenant_id": tenant_id,
+            "overall_status": "healthy" if healthy_count == total_count else "degraded",
+            "healthy_connectors": healthy_count,
+            "total_connectors": total_count,
+            "connectors": results
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/connectors/capabilities")
+async def get_connector_capabilities(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get capabilities of all available ERP connectors.
+    
+    Returns metadata about supported ERP systems.
+    """
+    from ..services.health_check import health_check_service
+    
+    try:
+        capabilities = await health_check_service.get_all_connector_capabilities()
+        return {
+            "total_connectors": len(capabilities),
+            "connectors": capabilities
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/connectors/capabilities/{erp_type}")
+async def get_specific_connector_capabilities(
+    erp_type: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get capabilities of a specific ERP connector.
+    """
+    from ..services.health_check import health_check_service
+    
+    try:
+        capability = await health_check_service.get_connector_capabilities(erp_type)
+        if capability.get("status") == "not_found":
+            raise HTTPException(status_code=404, detail=f"ERP type '{erp_type}' not found")
+        return capability
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

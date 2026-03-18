@@ -21,6 +21,11 @@ from erp_integration.routers.webhooks import router as webhooks_router
 from erp_integration.routers.metrics import router as metrics_router
 from erp_integration.routers.websocket import router as websocket_router
 
+# Rate limiting
+from services.rate_limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -51,6 +56,10 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan
 )
+
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(

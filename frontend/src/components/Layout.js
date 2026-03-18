@@ -8,7 +8,8 @@ import {
   LogOut,
   Leaf,
   Menu,
-  X
+  X,
+  Database
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -17,6 +18,7 @@ const navItems = [
   { to: '/invoices', icon: FileText, label: 'Invoice Parser' },
   { to: '/ledger', icon: Link2, label: 'Carbon Ledger' },
   { to: '/reports', icon: FileBarChart, label: 'ESG Reports' },
+  { to: '/erp', icon: Database, label: 'ERP Integrations' },
 ];
 
 export function Sidebar() {

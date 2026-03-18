@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/Dashboard';
 import { InvoicesPage } from './pages/Invoices';
 import { LedgerPage } from './pages/Ledger';
 import { ReportsPage } from './pages/Reports';
+import ERPManagement from './pages/ERPManagement';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -92,6 +93,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ReportsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/erp"
+        element={
+          <ProtectedRoute>
+            <ERPManagement />
           </ProtectedRoute>
         }
       />
