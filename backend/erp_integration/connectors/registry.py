@@ -3,16 +3,19 @@ from typing import Dict, Type
 from .base import ERPBaseConnector
 from .odoo import OdooConnector
 from .syspro import SYSPROConnector
+from .sap_b1 import SAPBusinessOneConnector
+from .erpnext import ERPNextConnector
+from .sage_bc import SageBusinessCloudConnector
+from .dynamics365 import Dynamics365BCConnector
 
 
 CONNECTOR_REGISTRY: Dict[str, Type[ERPBaseConnector]] = {
     "odoo": OdooConnector,
     "syspro": SYSPROConnector,
-    # Add more connectors here:
-    # "erpnext": ERPNextConnector,
-    # "sage_bc": SageBCConnector,
-    # "dynamics365": DynamicsConnector,
-    # "sap_b1": SAPBusinessOneConnector,
+    "sap_b1": SAPBusinessOneConnector,
+    "erpnext": ERPNextConnector,
+    "sage_bc": SageBusinessCloudConnector,
+    "dynamics365": Dynamics365BCConnector,
 }
 
 
