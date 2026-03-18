@@ -69,5 +69,84 @@
       "item_code": "ItemCode",
       "production_ref": "DocNum"
     }
+  },
+  "erpnext": {
+    "accounts_payable": {
+      "record_date": "posting_date",
+      "amount": "grand_total",
+      "currency": "currency",
+      "item_code": "items[].item_code",
+      "quantity": "items[].qty",
+      "unit": "items[].uom",
+      "vendor_name": "supplier_name",
+      "line_items": "items"
+    },
+    "manufacturing": {
+      "record_date": "modified",
+      "quantity": "fg_completed_qty",
+      "unit": "stock_uom",
+      "item_code": "production_item",
+      "production_ref": "name",
+      "product_name": "item_name"
+    },
+    "procurement": {
+      "record_date": "transaction_date",
+      "quantity": "items[].qty",
+      "unit": "items[].uom",
+      "item_code": "items[].item_code",
+      "partner": "supplier"
+    }
+  },
+  "sage_bc": {
+    "accounts_payable": {
+      "record_date": "DocumentDate",
+      "amount": "TotalAmount",
+      "currency": "CurrencyCode",
+      "item_code": "ItemNo",
+      "quantity": "Quantity",
+      "unit": "UnitOfMeasure",
+      "vendor_name": "VendorName"
+    },
+    "manufacturing": {
+      "record_date": "StartingDate",
+      "quantity": "Quantity",
+      "unit": "UnitOfMeasureCode",
+      "item_code": "ItemNo",
+      "production_ref": "No",
+      "product_name": "Description"
+    },
+    "procurement": {
+      "record_date": "OrderDate",
+      "quantity": "Quantity",
+      "unit": "UnitOfMeasureCode",
+      "item_code": "ItemNo",
+      "partner": "VendorName"
+    }
+  },
+  "dynamics365": {
+    "accounts_payable": {
+      "record_date": "InvoiceDate",
+      "amount": "TotalAmount",
+      "currency": "TransactionCurrencyId",
+      "item_code": "ProductNumber",
+      "quantity": "Quantity",
+      "unit": "UoMName",
+      "vendor_name": "VendorName"
+    },
+    "manufacturing": {
+      "record_date": "ScheduledStartDate",
+      "quantity": "OrderedQuantity",
+      "unit": "ProductionUnitOfMeasure",
+      "item_code": "ItemNumber",
+      "production_ref": "ProductionOrderNumber",
+      "product_name": "ProductName"
+    },
+    "procurement": {
+      "record_date": "OrderDate",
+      "quantity": "OrderQuantity",
+      "unit": "PurchaseUnitOfMeasure",
+      "item_code": "ItemNumber",
+      "partner": "VendorName"
+    }
   }
 }

@@ -23,7 +23,7 @@ class ERPDatabaseService:
     
     async def _ensure_db(self):
         """Ensure database connection."""
-        if not self.db:
+        if self.db is None:
             self.db = await get_database()
     
     # ========== Tenant ERP Config ==========

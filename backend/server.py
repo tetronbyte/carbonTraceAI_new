@@ -18,6 +18,8 @@ from routers.dashboard import router as dashboard_router
 # ERP Integration routers
 from erp_integration.routers.erp_router import router as erp_router
 from erp_integration.routers.webhooks import router as webhooks_router
+from erp_integration.routers.metrics import router as metrics_router
+from erp_integration.routers.websocket import router as websocket_router
 
 # Configure logging
 logging.basicConfig(
@@ -74,6 +76,8 @@ app.include_router(dashboard_router, prefix="/api")
 # ERP Integration routers (already have /api prefix)
 app.include_router(erp_router)
 app.include_router(webhooks_router)
+app.include_router(metrics_router)
+app.include_router(websocket_router)
 
 @app.get("/api")
 async def root():
