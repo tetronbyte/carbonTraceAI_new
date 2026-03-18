@@ -11,27 +11,27 @@ import {
   Trash2
 } from 'lucide-react';
 import AddERPConnectionModal from '../components/AddERPConnectionModal';
+import { useAuth } from '../context/AuthContext';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 const ERPManagement = () => {
   const navigate = useNavigate();
+  const { organization } = useAuth();
   const [connections, setConnections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [healthStatus, setHealthStatus] = useState({});
-  const [selectedOrg, setSelectedOrg] = useState(null);
 
   useEffect(() => {
-    // Get selected organization from localStorage
-    const org = JSON.parse(localStorage.getItem('selectedOrganization'));
-    if (!org) {
-      navigate('/dashboard');
+    // Check if organization is available from AuthContext
+    if (!organization) {
+      // Organization not loaded yet or user not in any org
+      setLoading(false);
       return;
     }
-    setSelectedOrg(org);
-    fetchConnections(org.id);
-  }, [navigate]);
+    fetchConnections(organization.id);
+  }, [organization]);
 
   const fetchConnections = async (tenantId) => {
     try {
@@ -89,14 +89,14 @@ const ERPManagement = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `${API_URL}/api/erp/connections/${selectedOrg.id}/${erpType}`,
+        `${API_URL}/api/erp/connections/${organization.id}/${erpType}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
       
       // Refresh connections
-      fetchConnections(selectedOrg.id);
+      fetchConnections(organization.id);
     } catch (error) {
       console.error('Error disconnecting:', error);
       alert('Failed to disconnect ERP system');
@@ -143,6 +143,23 @@ const ERPManagement = () => {
     );
   }
 
+  // Show message if no organization
+  if (!organization) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <Database className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            No Organization Found
+          </h2>
+          <p className="text-gray-600">
+            Please contact support to set up your organization.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
@@ -166,15 +183,13 @@ const ERPManagement = () => {
             Add ERP Connection
           </button>
           
-          {selectedOrg && (
-            <button
-              onClick={() => checkHealth(selectedOrg.id)}
-              className="ml-3 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Refresh Health
-            </button>
-          )}
+          <button
+            onClick={() => checkHealth(organization.id)}
+            className="ml-3 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <RefreshCw className="w-5 h-5 mr-2" />
+            Refresh Health
+          </button>
         </div>
 
         {/* Connections Grid */}
@@ -246,7 +261,7 @@ const ERPManagement = () => {
                 {/* Actions */}
                 <div className="flex gap-2">
                   <button
-                    onClick={() => navigate(`/erp/extract/${selectedOrg.id}/${connection.erp_type}`)}
+                    onClick={() => navigate(`/erp/extract/${organization.id}/${connection.erp_type}`)}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Extract Data
@@ -267,11 +282,11 @@ const ERPManagement = () => {
       {/* Add Connection Modal */}
       {showAddModal && (
         <AddERPConnectionModal
-          tenantId={selectedOrg?.id}
+          tenantId={organization?.id}
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
-            fetchConnections(selectedOrg.id);
+            fetchConnections(organization.id);
           }}
         />
       )}

@@ -141,15 +141,18 @@ backend:
 
   - task: "ERP Health Check API"
     implemented: true
-    working: "NA"
+    working: false
     file: "backend/erp_integration/routers/erp_router.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: true
     status_history:
       - working: "NA"
         agent: "testing"
         comment: "GET /api/erp/health/{tenant_id} endpoint implemented. Returns health status for all tenant connectors."
+      - working: false
+        agent: "testing"
+        comment: "❌ Backend health check API failing with 500 Internal Server Error. Root cause: Redis connection error (localhost:6379 - 'Cannot assign requested address'). The slowapi rate limiting extension requires Redis but Redis service is not running or not properly configured. Error from backend logs: 'redis.exceptions.ConnectionError: Error 99 connecting to localhost:6379'. This is called automatically when ERP Management page loads. Does not block frontend functionality but prevents health status checks."
 
   - task: "Extraction Job API"
     implemented: true
@@ -358,11 +361,11 @@ frontend:
 
   - task: "ERP Management Page"
     implemented: true
-    working: false
+    working: true
     file: "frontend/src/pages/ERPManagement.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -370,14 +373,17 @@ frontend:
       - working: false
         agent: "testing"
         comment: "CRITICAL BUG FOUND: ERP page is inaccessible. The component checks for 'selectedOrganization' in localStorage (lines 27-32) and redirects to dashboard if not found. However, AuthContext stores organization in state, not localStorage. This creates a mismatch where users can never access the ERP page. Direct navigation to /erp and sidebar clicks both redirect to /dashboard."
+      - working: true
+        agent: "testing"
+        comment: "✅ CRITICAL FIX VERIFIED! ERP Management page now loads successfully. Fixed to use AuthContext organization instead of localStorage. Tested: Login → Navigate to /erp → Page loads with empty state message 'No ERP Connections' and 'Add ERP Connection' button. No redirect issues. Minor: Backend health check API returns 500 error (Redis connection issue at localhost:6379) but doesn't block page functionality."
 
   - task: "Add ERP Connection Modal (2-Step Wizard)"
     implemented: true
-    working: "NA"
+    working: true
     file: "frontend/src/components/AddERPConnectionModal.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -385,6 +391,9 @@ frontend:
       - working: "NA"
         agent: "testing"
         comment: "Cannot test - blocked by ERP Management Page access issue. Component exists and code structure looks correct, but unable to access parent page."
+      - working: true
+        agent: "testing"
+        comment: "✅ 2-step wizard modal working correctly. Tested complete flow: Click 'Add ERP Connection' → Modal opens with 'Step 1 of 2: Select ERP System' → Fill fields (ERP System: Odoo, Country: Kenya, CBAM Sector: Iron and Steel) → Click Next → Step 2 displays 'Step 2 of 2: Configure Connection' with Base URL, Database Name, Username, Password, and optional API Key fields. Form uses native HTML select and input elements. Modal has proper validation structure. UI/UX is clean and functional."
 
   - task: "Extraction Dashboard"
     implemented: true
@@ -418,11 +427,11 @@ frontend:
 
   - task: "ERP Integrations Sidebar Link"
     implemented: true
-    working: false
+    working: true
     file: "frontend/src/components/Layout.js"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "testing"
@@ -430,26 +439,26 @@ frontend:
       - working: false
         agent: "testing"
         comment: "Link exists and is properly configured (href='/erp', testid='nav-erp-integrations') but navigation fails. Clicking the link does nothing due to ERPManagement redirect issue. All other sidebar links work correctly (Dashboard, Invoice Parser, Carbon Ledger, ESG Reports)."
+      - working: true
+        agent: "testing"
+        comment: "✅ ERP Integrations sidebar link now working correctly after ERPManagement fix. Tested: Dashboard → Click 'ERP Integrations' link → Successfully navigates to /erp → Page loads. Navigation is functional."
 
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 4
+  test_sequence: 5
   run_ui: true
 
 test_plan:
   current_focus:
-    - "CRITICAL FIX NEEDED: ERP Management Page organization localStorage issue"
-    - "ERP Management Page - Test empty state, connection list, health status (after fix)"
-    - "Add ERP Connection Flow - Test 2-step wizard with validation (after fix)"
-    - "Extraction Dashboard - Test job history, trigger extraction, filters (after fix)"
-    - "Data Viewer - Test raw/normalized toggle, module filters, export (after fix)"
-    - "ERP Backend APIs - Test connection, health check, extraction, data retrieval (after fix)"
-    - "Navigation - Test sidebar link, routing, back navigation (after fix)"
-  stuck_tasks:
-    - "ERP Management Page - Blocked by organization localStorage mismatch with AuthContext"
+    - "Fix Redis connection issue for ERP health check API (backend)"
+    - "Test ERP connection creation end-to-end (with real/test credentials)"
+    - "Extraction Dashboard - Test job history, trigger extraction, filters"
+    - "Data Viewer - Test raw/normalized toggle, module filters, export"
+    - "Complete regression testing of all existing features"
+  stuck_tasks: []
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
@@ -567,3 +576,60 @@ agent_communication:
       - Navigation to other pages working
       
       READY FOR MAIN AGENT FIX.
+
+  - agent: "testing"
+    message: |
+      ✅ ERP INTEGRATION FIX VERIFICATION - SUCCESS
+      
+      CRITICAL FIX APPLIED BY MAIN AGENT:
+      - ERPManagement.js now uses AuthContext organization instead of localStorage
+      - Lines 20, 28-32 updated to get organization from useAuth() hook
+      
+      RE-TESTING RESULTS:
+      
+      ✅ TEST 1: LOGIN & ERP PAGE ACCESS
+      - Login successful with test credentials
+      - Navigated to ERP Integrations via sidebar
+      - **ERP Management page loads successfully - NO REDIRECT!**
+      - Empty state displays: "No ERP Connections" with "Add ERP Connection" button
+      - Fix verified working ✓
+      
+      ✅ TEST 2: ADD CONNECTION MODAL (2-STEP WIZARD)
+      - Clicked "Add ERP Connection" button
+      - Modal opens with title "Add ERP Connection"
+      - **Step 1 of 2**: "Select ERP System"
+        - ERP System dropdown: Successfully selected "Odoo" (6 other options available)
+        - Country field: Text input, filled with "Kenya"
+        - CBAM Sector dropdown: Successfully selected "Iron and Steel" (6 options total)
+        - Clicked "Next" button
+      - **Step 2 of 2**: "Configure Connection"
+        - Base URL field displayed (for API-based Odoo)
+        - Credentials section with: Database Name, Username, Password, API Key (optional)
+        - "Back" and "Test & Connect" buttons visible
+        - Form uses native HTML elements (select, input)
+        - UI/UX is clean and professional ✓
+      
+      ✅ TEST 3: NAVIGATION
+      - Sidebar navigation working correctly
+      - ERP link functional and navigates properly
+      - Can navigate between Dashboard, Invoices, Ledger, Reports, and ERP without issues
+      
+      ⚠️ MINOR ISSUE FOUND (Backend - Not blocking):
+      - ERP Health Check API returns 500 error
+      - Root cause: Redis connection failure (localhost:6379 - slowapi rate limiting)
+      - Error: "redis.exceptions.ConnectionError: Error 99 connecting to localhost:6379. Cannot assign requested address."
+      - Impact: Health status indicators won't work, but page loads and modal functions normally
+      - Frontend handles error gracefully (logs to console, doesn't crash)
+      
+      SCREENSHOTS CAPTURED:
+      - Dashboard after login
+      - ERP Management page with empty state
+      - Add Connection Modal Step 1 (empty and filled)
+      - Add Connection Modal Step 2 showing configuration fields
+      
+      RECOMMENDATIONS FOR MAIN AGENT:
+      1. Fix Redis connection for health check API (start Redis service or configure rate limiting differently)
+      2. Consider adding test credentials validation flow
+      3. ERP Integration feature is now accessible and ready for full E2E testing with actual ERP systems
+      
+      STATUS: FIX VERIFIED ✅ - ERP Management page is now accessible and functional!
