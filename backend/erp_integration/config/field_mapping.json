@@ -1,0 +1,73 @@
+{
+  "odoo": {
+    "accounts_payable": {
+      "record_date": "invoice_date",
+      "amount": "amount_total",
+      "currency": "currency_id.name",
+      "line_items": "invoice_line_ids",
+      "quantity": "invoice_line_ids[].quantity",
+      "unit": "invoice_line_ids[].product_uom_id.name",
+      "item_code": "invoice_line_ids[].product_id.default_code",
+      "vendor_name": "partner_id.name"
+    },
+    "manufacturing": {
+      "record_date": "date_finished",
+      "quantity": "product_qty",
+      "unit": "product_uom_id.name",
+      "item_code": "product_id.default_code",
+      "production_ref": "name",
+      "product_name": "product_id.name"
+    },
+    "procurement": {
+      "record_date": "date_planned",
+      "quantity": "product_qty",
+      "unit": "product_uom.name",
+      "item_code": "product_id.default_code",
+      "partner": "partner_id.name"
+    }
+  },
+  "syspro": {
+    "accounts_payable": {
+      "record_date": "InvoiceDate",
+      "amount": "InvTotal",
+      "currency": "Currency",
+      "item_code": "StockCode",
+      "quantity": "InvQty",
+      "unit": "UnitOfMeasure",
+      "vendor_name": "Supplier"
+    },
+    "manufacturing": {
+      "record_date": "DateReleased",
+      "quantity": "QtyManufactured",
+      "unit": "UoM",
+      "item_code": "StockCode",
+      "production_ref": "Job",
+      "product_name": "Description"
+    },
+    "procurement": {
+      "record_date": "OrderDate",
+      "quantity": "OrderQty",
+      "unit": "OrderUom",
+      "item_code": "StockCode",
+      "partner": "Supplier"
+    }
+  },
+  "sap_b1": {
+    "accounts_payable": {
+      "record_date": "DocDate",
+      "amount": "DocTotal",
+      "currency": "DocCur",
+      "item_code": "ItemCode",
+      "quantity": "Quantity",
+      "unit": "UnitMsr",
+      "vendor_name": "CardName"
+    },
+    "manufacturing": {
+      "record_date": "PostDate",
+      "quantity": "PlannedQty",
+      "unit": "UgpCode",
+      "item_code": "ItemCode",
+      "production_ref": "DocNum"
+    }
+  }
+}
