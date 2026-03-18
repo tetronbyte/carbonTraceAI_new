@@ -73,7 +73,7 @@ async def connect_erp(
         if not is_healthy:
             raise HTTPException(
                 status_code=400,
-                detail=f"ERP connection test failed. Check credentials and connectivity."
+                detail="ERP connection test failed. Check credentials and connectivity."
             )
         
         # Store config
@@ -315,3 +315,162 @@ async def get_specific_connector_capabilities(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/jobs/{tenant_id}")
+@limiter.limit("30/minute")
+async def get_tenant_jobs(
+    request: Request,
+    tenant_id: str,
+    erp_type: str = None,
+    status: str = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get all extraction jobs for a tenant.
+    
+    Optional filters:
+    - erp_type: Filter by ERP system type
+    - status: Filter by job status (completed, failed, processing)
+    """
+    from services.job_tracker import job_tracker
+    
+    try:
+        # Get jobs for tenant
+        jobs = await job_tracker.get_jobs_by_tenant(
+            tenant_id=tenant_id,
+            job_type=f"erp_extract_{erp_type}" if erp_type else None,
+            limit=100
+        )
+        
+        # Filter by status if provided
+        if status:
+            jobs = [j for j in jobs if j.get("status") == status]
+        
+        return {
+            "tenant_id": tenant_id,
+            "total": len(jobs),
+            "jobs": jobs
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/jobs/{job_id}/status")
+@limiter.limit("60/minute")
+async def get_job_status(
+    request: Request,
+    job_id: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get detailed status of a specific extraction job."""
+    try:
+        job = await job_store.get_job(job_id)
+        
+        if not job:
+            raise HTTPException(status_code=404, detail="Job not found")
+        
+        return job
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/data/raw/{tenant_id}")
+@limiter.limit("30/minute")
+async def get_raw_data(
+    request: Request,
+    tenant_id: str,
+    job_id: str = None,
+    module: str = None,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get raw extracted data for a tenant.
+    
+    Optional filters:
+    - job_id: Filter by specific extraction job
+    - module: Filter by module (energy, production, etc.)
+    - limit: Max records to return (default 100)
+    """
+    try:
+        query = {"tenant_id": tenant_id}
+        
+        if job_id:
+            # Get records for specific job by checking extraction_audit_logs
+            query["job_id"] = job_id
+        
+        if module:
+            query["module"] = module
+        
+        records = await db_service.get_raw_extractions(
+            tenant_id=tenant_id,
+            limit=limit
+        )
+        
+        return {
+            "tenant_id": tenant_id,
+            "total": len(records),
+            "records": records
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/data/normalized/{tenant_id}")
+@limiter.limit("30/minute")
+async def get_normalized_data(
+    request: Request,
+    tenant_id: str,
+    job_id: str = None,
+    module: str = None,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get normalized CBAM-ready data for a tenant.
+    
+    Optional filters:
+    - job_id: Filter by specific extraction job
+    - module: Filter by module (energy, production, etc.)
+    - limit: Max records to return (default 100)
+    """
+    try:
+        records = await db_service.get_normalized_records(
+            tenant_id=tenant_id,
+            limit=limit
+        )
+        
+        # Filter by module if specified
+        if module:
+            records = [r for r in records if r.get("module") == module]
+        
+        return {
+            "tenant_id": tenant_id,
+            "total": len(records),
+            "records": records
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/export/cbam/{tenant_id}")
+@limiter.limit("10/minute")
+async def export_to_cbam_xml(
+    request: Request,
+    tenant_id: str,
+    payload: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Export normalized data to CBAM-compliant XML format.
+    
+    Note: This is a placeholder endpoint. Full CBAM XML generation
+    will be implemented in P2.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="CBAM XML export feature is under development. Coming in P2!"
+    )

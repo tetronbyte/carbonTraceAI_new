@@ -249,3 +249,45 @@ class ERPDatabaseService:
 
 # Global singleton instance
 db_service = ERPDatabaseService()
+
+
+    
+    async def get_raw_extractions(
+        self,
+        tenant_id: str,
+        erp_type: str = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """Get raw extraction records for tenant."""
+        await self._ensure_db()
+        
+        query = {"tenant_id": tenant_id}
+        if erp_type:
+            query["source_erp"] = erp_type
+        
+        cursor = self.db.erp_raw_extractions.find(
+            query,
+            {"_id": 0}
+        ).sort("extracted_at", -1).limit(limit)
+        
+        return await cursor.to_list(length=limit)
+    
+    async def get_normalized_records(
+        self,
+        tenant_id: str,
+        record_type: str = None,
+        limit: int = 100
+    ) -> List[Dict]:
+        """Get normalized records for tenant."""
+        await self._ensure_db()
+        
+        query = {"tenant_id": tenant_id}
+        if record_type:
+            query["record_type"] = record_type
+        
+        cursor = self.db.erp_normalized_records.find(
+            query,
+            {"_id": 0}
+        ).sort("activity_date", -1).limit(limit)
+        
+        return await cursor.to_list(length=limit)

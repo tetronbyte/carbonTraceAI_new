@@ -7,6 +7,8 @@ import { InvoicesPage } from './pages/Invoices';
 import { LedgerPage } from './pages/Ledger';
 import { ReportsPage } from './pages/Reports';
 import ERPManagement from './pages/ERPManagement';
+import ExtractionDashboard from './pages/ExtractionDashboard';
+import DataViewer from './pages/DataViewer';
 import './App.css';
 
 function ProtectedRoute({ children }) {
@@ -101,6 +103,22 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <ERPManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/erp/extract/:tenantId/:erpType"
+        element={
+          <ProtectedRoute>
+            <ExtractionDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/erp/data/:tenantId/:jobId"
+        element={
+          <ProtectedRoute>
+            <DataViewer />
           </ProtectedRoute>
         }
       />
