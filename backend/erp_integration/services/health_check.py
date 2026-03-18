@@ -148,14 +148,16 @@ class ConnectorHealthCheck:
         Returns:
             Connector capabilities and metadata
         """
-        if erp_type not in CONNECTOR_REGISTRY:
+        from ..connectors.registry import _import_connector
+        
+        connector_class = _import_connector(erp_type)
+        
+        if connector_class is None:
             return {
                 "status": "not_found",
                 "erp_type": erp_type,
-                "error": "Unsupported ERP type"
+                "error": "Connector not available (may have missing dependencies)"
             }
-        
-        connector_class = CONNECTOR_REGISTRY[erp_type]
         
         # Determine connector type
         from ..connectors.base import APIConnector, SQLConnector
@@ -179,9 +181,12 @@ class ConnectorHealthCheck:
     
     async def get_all_connector_capabilities(self) -> List[Dict[str, Any]]:
         """Get capabilities for all registered connectors."""
-        capabilities = []
+        from ..connectors.registry import get_available_connectors
         
-        for erp_type in CONNECTOR_REGISTRY.keys():
+        capabilities = []
+        available_connectors = get_available_connectors()
+        
+        for erp_type in available_connectors.keys():
             cap = await self.get_connector_capabilities(erp_type)
             capabilities.append(cap)
         

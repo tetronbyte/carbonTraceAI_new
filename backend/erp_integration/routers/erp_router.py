@@ -2,6 +2,7 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
+from datetime import datetime, timezone
 from ..schemas.api_schemas import (
     ERPConnectionRequest,
     ERPConnectionResponse,
@@ -467,10 +468,53 @@ async def export_to_cbam_xml(
     """
     Export normalized data to CBAM-compliant XML format.
     
-    Note: This is a placeholder endpoint. Full CBAM XML generation
-    will be implemented in P2.
+    Request body:
+    {
+        "job_id": "optional-job-id",
+        "from_date": "2024-01-01",
+        "to_date": "2024-12-31"
+    }
     """
-    raise HTTPException(
-        status_code=501,
-        detail="CBAM XML export feature is under development. Coming in P2!"
-    )
+    from ..services.cbam_exporter import cbam_exporter
+    from fastapi.responses import Response
+    
+    try:
+        job_id = payload.get("job_id")
+        from_date = payload.get("from_date")
+        to_date = payload.get("to_date")
+        
+        # Generate XML
+        xml_content = await cbam_exporter.generate_cbam_xml(
+            tenant_id=tenant_id,
+            job_id=job_id,
+            from_date=from_date,
+            to_date=to_date
+        )
+        
+        # Validate XML
+        validation = await cbam_exporter.validate_cbam_export(xml_content)
+        
+        if not validation["valid"]:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "message": "Generated XML failed validation",
+                    "errors": validation["errors"]
+                }
+            )
+        
+        # Return XML file
+        filename = f"cbam_export_{tenant_id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.xml"
+        
+        return Response(
+            content=xml_content,
+            media_type="application/xml",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
