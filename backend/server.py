@@ -15,6 +15,10 @@ from routers.ledger import router as ledger_router
 from routers.reports import router as reports_router
 from routers.dashboard import router as dashboard_router
 
+# ERP Integration routers
+from erp_integration.routers.erp_router import router as erp_router
+from erp_integration.routers.webhooks import router as webhooks_router
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -66,6 +70,10 @@ app.include_router(invoices_router, prefix="/api")
 app.include_router(ledger_router, prefix="/api")
 app.include_router(reports_router, prefix="/api")
 app.include_router(dashboard_router, prefix="/api")
+
+# ERP Integration routers (already have /api prefix)
+app.include_router(erp_router)
+app.include_router(webhooks_router)
 
 @app.get("/api")
 async def root():
